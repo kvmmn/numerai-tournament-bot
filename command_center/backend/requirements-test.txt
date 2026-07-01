@@ -1,0 +1,7 @@
+cloudpickle
+numerai-tools
+numerapi
+numpy
+pandas
+pydantic-settings
+pyarrow

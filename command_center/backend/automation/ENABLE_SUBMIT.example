@@ -1,0 +1,2 @@
+# Create a file named `ENABLE_SUBMIT` in this same directory to allow mcp-auto submission.
+# If the file is absent, mcp-auto runs as dry-run and skips submission.

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Numerai Daily Readiness Preparation (never auto-submits) -->
+    <!-- Install: cp com.numerai.daily.plist ~/Library/LaunchAgents/ -->
+    <!-- Load:    launchctl load ~/Library/LaunchAgents/com.numerai.daily.plist -->
+    <!-- Unload:  launchctl unload ~/Library/LaunchAgents/com.numerai.daily.plist -->
+    <!-- Status:  launchctl list | grep numerai -->
+
+    <key>Label</key>
+    <string>com.numerai.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kaveh/Desktop/base/_LAB/numerai/.venv/bin/python</string>
+        <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center/automation/daily_numerai_run.py</string>
+        <string>--mode</string>
+        <string>agent-prepare</string>
+        <string>--target-model</string>
+        <string>kvmmn_te</string>
+        <string>--strict</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center</string>
+
+    <!-- Run daily at 12:00 UTC (adjust for your timezone) -->
+    <!-- Tehran = UTC+3:30, so 12:00 UTC = 15:30 Tehran -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>12</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center/automation/logs/daily_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center/automation/logs/daily_stderr.log</string>
+
+    <!-- Environment -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/Users/kaveh/Desktop/base/_LAB/numerai/.venv/bin</string>
+        <key>DATA_DIR</key>
+        <string>/Users/kaveh/Desktop/base/_LAB/numerai</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
