@@ -395,7 +395,10 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
             Path(settings.CONTROL_PLANE_DIR),
         ).poll()
     if mode == "research-evaluate":
-        artifact_path = getattr(args, "artifact_path", None) or str(model_path())
+        artifact_path = (
+            getattr(args, "artifact_path", None)
+            or str(AgenticControlPlane._default_artifact())
+        )
         model_name = getattr(args, "model_name", None) or Path(artifact_path).stem
         packet = evaluate_artifact_robustness(
             artifact_path,
