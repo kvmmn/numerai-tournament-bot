@@ -132,6 +132,50 @@ class AgenticControlPlaneTests(unittest.TestCase):
                 self.artifact,
             )
 
+    def test_shadow_prepare_uses_separate_zero_stake_policy(self):
+        evidence = self.root / "shadow_evidence.json"
+        evidence.write_text(
+            json.dumps(
+                {
+                    "decision": "DEPLOY_SHADOW",
+                    "stake_eligible": False,
+                    "maximum_observed_portfolio_correlation": 0.7,
+                }
+            )
+        )
+        plane = AgenticControlPlane(self.root / "state", napi=self.napi)
+        with (
+            patch(
+                "app.core.agentic_control_plane.sync_datasets",
+                return_value={"downloaded": ["live.parquet"]},
+            ),
+            patch(
+                "app.core.agentic_control_plane.build_submission_dataframe",
+                return_value=self.frame,
+            ),
+            patch(
+                "app.core.agentic_control_plane.evaluate_artifact_robustness",
+                return_value={"packet_sha256": "packet"},
+            ),
+            patch(
+                "app.core.agentic_control_plane.shadow_recommendation",
+                return_value={"decision": "DEPLOY_SHADOW", "failures": []},
+            ) as shadow_policy,
+            patch(
+                "app.core.agentic_control_plane.promotion_recommendation"
+            ) as production_policy,
+        ):
+            result = plane.prepare(
+                target_model="kvmmn_te",
+                artifact_path=self.artifact,
+                deployment_tier="shadow",
+                shadow_evidence_path=evidence,
+            )
+        self.assertEqual(result["validation"]["deployment_tier"], "shadow")
+        self.assertFalse(result["validation"]["stake_eligible"])
+        shadow_policy.assert_called_once()
+        production_policy.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

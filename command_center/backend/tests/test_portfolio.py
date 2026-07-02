@@ -87,11 +87,14 @@ class PortfolioGovernanceTests(unittest.TestCase):
                     {
                         "model_name": "kvmmn",
                         "role": "core",
+                        "deployment_tier": "production",
+                        "stake_eligible": False,
                         "artifact": {
                             "path": str(artifact),
                             "sha256": hashlib.sha256(b"candidate").hexdigest(),
                             "size_bytes": len(b"candidate"),
                         },
+                        "evidence": None,
                         "source_bundle_id": None,
                     }
                 ],
@@ -128,6 +131,45 @@ class PortfolioGovernanceTests(unittest.TestCase):
             self.assertFalse(result["coverage_complete"])
             self.assertEqual(result["results"][1]["status"], "UNASSIGNED")
             prepare.assert_not_called()
+
+    def test_shadow_assignment_requires_evidence_and_cannot_stake(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            artifact = self._artifact(root, "shadow.pkl", b"shadow")
+            with self.assertRaisesRegex(PortfolioError, "frozen evidence"):
+                create_portfolio_proposal(
+                    root,
+                    [
+                        {
+                            "model_name": "kvmmn_fn",
+                            "artifact_path": artifact,
+                            "deployment_tier": "shadow",
+                        }
+                    ],
+                )
+            evidence = self._artifact(
+                root,
+                "evidence.json",
+                json.dumps(
+                    {
+                        "decision": "DEPLOY_SHADOW",
+                        "stake_eligible": False,
+                    }
+                ).encode(),
+            )
+            with self.assertRaisesRegex(PortfolioError, "never be stake eligible"):
+                create_portfolio_proposal(
+                    root,
+                    [
+                        {
+                            "model_name": "kvmmn_fn",
+                            "artifact_path": artifact,
+                            "deployment_tier": "shadow",
+                            "stake_eligible": True,
+                            "evidence_path": evidence,
+                        }
+                    ],
+                )
 
 
 if __name__ == "__main__":

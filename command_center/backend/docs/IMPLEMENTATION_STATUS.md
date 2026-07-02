@@ -13,7 +13,7 @@
 | Immutable champion bundle | Complete | Frozen members, weights, checksums, data snapshot |
 | Stake sizing and execution gates | Complete | Live-evidence policy plus dual confirmation |
 | Robust promotion candidate | Active | Feature-family champion submitted to `kvmmn_te` in round 1302 |
-| Additional portfolio slots | Research needed | Existing alternatives failed policy or lockbox |
+| Additional portfolio slots | Awaiting approval | Two distinct zero-stake shadow candidates passed forward-test policy |
 | Guaranteed winning model | Not claimable | Competition outcomes remain uncertain |
 | Live staking | Not authorized | Caps are zero; insufficient current-model live evidence |
 

@@ -10,6 +10,7 @@ from app.core.model_registry import (
     ModelRegistryError,
     approve_candidate_bundle,
     create_candidate_bundle,
+    create_shadow_bundle,
     promote_candidate_bundle,
 )
 
@@ -93,6 +94,28 @@ class ModelRegistryTests(unittest.TestCase):
             frozen.write_bytes(b"tampered")
             with self.assertRaisesRegex(ModelRegistryError, "changed"):
                 promote_candidate_bundle(root / "registry", manifest_path, now=NOW)
+
+    def test_shadow_bundle_requires_shadow_evidence_and_disables_staking(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            model, data, evaluation, recommendation = self.fixtures(
+                root,
+                decision="DEPLOY_SHADOW",
+            )
+            manifest, manifest_path = create_shadow_bundle(
+                root / "registry",
+                name="shadow",
+                artifact_path=model,
+                evaluation_packet_path=evaluation,
+                recommendation_path=recommendation,
+                data_files=[data],
+                configuration={"tier": "shadow"},
+                code_revision="abc123",
+                now=NOW,
+            )
+            self.assertTrue(manifest_path.exists())
+            self.assertEqual(manifest["deployment_tier"], "shadow")
+            self.assertFalse(manifest["stake_eligible"])
 
 
 if __name__ == "__main__":

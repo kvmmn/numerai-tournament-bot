@@ -25,6 +25,7 @@ from .submission_guard import (
     validate_submission_dataframe,
 )
 from .research import evaluate_artifact_robustness, promotion_recommendation
+from .portfolio_research import shadow_recommendation
 
 
 class AgenticControlPlane:
@@ -120,6 +121,8 @@ class AgenticControlPlane:
         *,
         target_model: str | None = None,
         artifact_path: str | Path | None = None,
+        deployment_tier: str = "production",
+        shadow_evidence_path: str | Path | None = None,
     ) -> dict[str, Any]:
         napi = self._api()
         round_number = int(napi.get_current_round())
@@ -170,14 +173,38 @@ class AgenticControlPlane:
             selected_artifact,
             model_name=selected_artifact.stem,
         )
-        recommendation = promotion_recommendation(robustness, champion=None)
         validation["robustness"] = robustness
-        validation["promotion_recommendation"] = recommendation
-        if recommendation["decision"] != "PROMOTE":
-            raise SubmissionGuardError(
-                "Model robustness failed readiness policy: "
-                + ", ".join(recommendation["failures"])
+        validation["deployment_tier"] = deployment_tier
+        if deployment_tier == "shadow":
+            if not shadow_evidence_path:
+                raise SubmissionGuardError("Shadow preparation requires frozen evidence.")
+            evidence = json.loads(Path(shadow_evidence_path).read_text())
+            if evidence.get("decision") != "DEPLOY_SHADOW":
+                raise SubmissionGuardError("Shadow evidence is not approved for forward testing.")
+            recommendation = shadow_recommendation(
+                robustness,
+                maximum_observed_portfolio_correlation=float(
+                    evidence["maximum_observed_portfolio_correlation"]
+                ),
             )
+            validation["shadow_recommendation"] = recommendation
+            validation["stake_eligible"] = False
+            if recommendation["decision"] != "DEPLOY_SHADOW":
+                raise SubmissionGuardError(
+                    "Model failed shadow readiness policy: "
+                    + ", ".join(recommendation["failures"])
+                )
+        elif deployment_tier == "production":
+            recommendation = promotion_recommendation(robustness, champion=None)
+            validation["promotion_recommendation"] = recommendation
+            validation["stake_eligible"] = False
+            if recommendation["decision"] != "PROMOTE":
+                raise SubmissionGuardError(
+                    "Model robustness failed readiness policy: "
+                    + ", ".join(recommendation["failures"])
+                )
+        else:
+            raise SubmissionGuardError(f"Unknown deployment tier: {deployment_tier}")
         self._audit("risk_judge", "submission_validated", validation)
 
         submission_dir = self.state_dir / "rounds" / str(round_number) / model_name

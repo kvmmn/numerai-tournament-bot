@@ -143,6 +143,72 @@ def create_candidate_bundle(
     return manifest, manifest_path
 
 
+def create_shadow_bundle(
+    registry_dir: str | Path,
+    *,
+    name: str,
+    artifact_path: str | Path,
+    evaluation_packet_path: str | Path,
+    recommendation_path: str | Path,
+    data_files: list[str | Path],
+    configuration: dict[str, Any],
+    code_revision: str | None,
+    now: datetime | None = None,
+) -> tuple[dict[str, Any], Path]:
+    """Freeze a zero-stake forward-test artifact without promoting it."""
+    now = now or datetime.now(timezone.utc)
+    artifact_path = Path(artifact_path)
+    evaluation_packet_path = Path(evaluation_packet_path)
+    recommendation_path = Path(recommendation_path)
+    recommendation = json.loads(recommendation_path.read_text())
+    if recommendation.get("decision") != "DEPLOY_SHADOW":
+        raise ModelRegistryError("Only DEPLOY_SHADOW evidence can enter shadow registry.")
+    identity = {
+        "name": name,
+        "artifact_sha256": _sha256(artifact_path),
+        "evaluation_sha256": _sha256(evaluation_packet_path),
+        "recommendation_sha256": _sha256(recommendation_path),
+        "configuration": configuration,
+        "code_revision": code_revision,
+    }
+    bundle_id = hashlib.sha256(
+        json.dumps(identity, sort_keys=True, default=str).encode()
+    ).hexdigest()[:24]
+    bundle_dir = Path(registry_dir) / "shadows" / bundle_id
+    model_dir = bundle_dir / "models"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    frozen_artifact = model_dir / f"{name}{artifact_path.suffix}"
+    if not frozen_artifact.exists():
+        shutil.copy2(artifact_path, frozen_artifact)
+    frozen_evaluation = bundle_dir / "evaluation_packet.json"
+    frozen_recommendation = bundle_dir / "shadow_recommendation.json"
+    if not frozen_evaluation.exists():
+        shutil.copy2(evaluation_packet_path, frozen_evaluation)
+    if not frozen_recommendation.exists():
+        shutil.copy2(recommendation_path, frozen_recommendation)
+    manifest = {
+        "schema_version": 1,
+        "bundle_id": bundle_id,
+        "name": name,
+        "created_at": now.isoformat(),
+        "deployment_tier": "shadow",
+        "stake_eligible": False,
+        "status": "AWAITING_HUMAN_PORTFOLIO_APPROVAL",
+        "artifact": _file_record(frozen_artifact),
+        "evaluation_packet": _file_record(frozen_evaluation),
+        "shadow_recommendation": _file_record(frozen_recommendation),
+        "data_snapshot": [_file_record(Path(path)) for path in data_files],
+        "configuration": configuration,
+        "code_revision": code_revision,
+    }
+    manifest["manifest_sha256"] = hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, default=str).encode()
+    ).hexdigest()
+    manifest_path = bundle_dir / "manifest.json"
+    _atomic_json(manifest_path, manifest)
+    return manifest, manifest_path
+
+
 def approve_candidate_bundle(
     manifest_path: str | Path,
     *,

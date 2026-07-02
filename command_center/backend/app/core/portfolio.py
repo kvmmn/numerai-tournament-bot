@@ -61,11 +61,32 @@ def _normalize_assignments(assignments: list[dict[str, Any]]) -> list[dict[str, 
             )
         model_keys.add(model_key)
         artifact_hashes.add(artifact["sha256"])
+        deployment_tier = str(assignment.get("deployment_tier") or "production")
+        if deployment_tier not in {"production", "shadow"}:
+            raise PortfolioError("Portfolio deployment tier must be production or shadow.")
+        stake_eligible = bool(assignment.get("stake_eligible", False))
+        if deployment_tier == "shadow" and stake_eligible:
+            raise PortfolioError("Shadow assignments can never be stake eligible.")
+        evidence = None
+        evidence_path = assignment.get("evidence_path")
+        if deployment_tier == "shadow":
+            if not evidence_path:
+                raise PortfolioError("Shadow assignments require frozen evidence.")
+            evidence = _artifact_record(evidence_path)
+            evidence_payload = json.loads(Path(evidence["path"]).read_text())
+            if (
+                evidence_payload.get("decision") != "DEPLOY_SHADOW"
+                or evidence_payload.get("stake_eligible") is not False
+            ):
+                raise PortfolioError("Shadow evidence must authorize zero-stake deployment.")
         normalized.append(
             {
                 "model_name": model_name,
                 "role": str(assignment.get("role") or "unlabeled"),
+                "deployment_tier": deployment_tier,
+                "stake_eligible": stake_eligible,
                 "artifact": artifact,
+                "evidence": evidence,
                 "source_bundle_id": assignment.get("source_bundle_id"),
             }
         )
@@ -151,7 +172,12 @@ def activate_portfolio(
             {
                 "model_name": row["model_name"],
                 "role": row["role"],
+                "deployment_tier": row.get("deployment_tier"),
+                "stake_eligible": row.get("stake_eligible", False),
                 "artifact_path": row["artifact"]["path"],
+                "evidence_path": (
+                    row["evidence"]["path"] if row.get("evidence") else None
+                ),
                 "source_bundle_id": row.get("source_bundle_id"),
             }
             for row in proposal["assignments"]
@@ -221,7 +247,10 @@ def bootstrap_portfolio_from_verified_submission(
             {
                 "model_name": readiness["target_model"],
                 "role": "feature-family champion",
+                "deployment_tier": "production",
+                "stake_eligible": False,
                 "artifact": artifact,
+                "evidence": None,
                 "source_bundle_id": source_bundle_id,
             }
         ],
@@ -241,7 +270,12 @@ def load_current_portfolio(registry_dir: str | Path) -> dict[str, Any]:
             {
                 "model_name": row["model_name"],
                 "role": row["role"],
+                "deployment_tier": row.get("deployment_tier"),
+                "stake_eligible": row.get("stake_eligible", False),
                 "artifact_path": row["artifact"]["path"],
+                "evidence_path": (
+                    row["evidence"]["path"] if row.get("evidence") else None
+                ),
                 "source_bundle_id": row.get("source_bundle_id"),
             }
             for row in portfolio["assignments"]
@@ -291,6 +325,12 @@ class PortfolioControlPlane:
                 result = control.prepare(
                     target_model=model_name,
                     artifact_path=assignment["artifact"]["path"],
+                    deployment_tier=assignment["deployment_tier"],
+                    shadow_evidence_path=(
+                        assignment["evidence"]["path"]
+                        if assignment.get("evidence")
+                        else None
+                    ),
                 )
             except Exception as exc:
                 result = {

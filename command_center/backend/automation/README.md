@@ -20,6 +20,9 @@ for Codex Automations.
   hash, prediction schema, and idempotency ledger before one upload.
 - `portfolio-prepare`: loads the active distinct per-slot assignments, skips
   already submitted slots, and prepares independent packets for the rest.
+- `portfolio-propose`, `portfolio-approve`, `portfolio-activate`: freeze,
+  authorize, and atomically switch the per-slot assignment set. Activation does
+  not submit.
 
 Example:
 ```bash

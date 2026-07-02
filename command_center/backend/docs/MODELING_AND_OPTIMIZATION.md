@@ -46,6 +46,17 @@ At prediction time, the loader reads the exact feature union declared inside
 the frozen model. It does not assume one global feature set, so a specialized
 ensemble cannot silently receive the wrong live columns.
 
+## Production versus shadow models
+
+| Tier | Purpose | Historical gate | Stake eligible? |
+|---|---|---|---|
+| Production | Competition contender | Full strict policy and positive recent-50 | Only after live evidence |
+| Shadow | Collect forward evidence for a distinct idea | Positive broad/recent-25/100, bounded recent-50 weakness, low exposure, correlation ≤ 0.85 to portfolio | Never |
+
+Shadow slots are experiments, not weakened champions. They require frozen
+evidence, unique artifact checksums, portfolio approval, and a separate
+round-specific submission approval.
+
 ## Experiment evidence
 
 The neutralized baseline produced:

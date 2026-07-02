@@ -67,11 +67,13 @@ so it does not depend on Codex being open.
 - A round/model pair cannot be submitted twice by this control plane.
 - Direct legacy submit routes and file-flag approval are disabled.
 - Staking defaults to zero and cannot reuse a previous model's score history.
+- Shadow assignments are permanently stake-ineligible and cannot be activated
+  without frozen evidence plus a portfolio approval challenge.
 
 ## Current state
 
 The `small + serenity` feature-family champion is assigned to `kvmmn_te` and
 has a verified round-1302 submission. `kvmmn` and `kvmmn_fn` remain explicitly
-unassigned because every other existing candidate failed the full policy or
-untouched lockbox. The system will not duplicate one prediction stream merely
-to make all dashboard rows look active.
+unassigned in the active portfolio. Two diverse zero-stake shadow candidates
+have passed the separate forward-test policy and are frozen in a new portfolio
+proposal. They remain inactive until human approval.

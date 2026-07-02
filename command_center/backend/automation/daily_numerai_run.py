@@ -51,7 +51,12 @@ from app.core.config import settings  # noqa: E402
 from app.core.agentic_control_plane import AgenticControlPlane  # noqa: E402
 from app.core.submission_guard import SubmissionGuardError  # noqa: E402
 from app.core.performance_listener import PerformanceListener  # noqa: E402
-from app.core.portfolio import PortfolioControlPlane  # noqa: E402
+from app.core.portfolio import (  # noqa: E402
+    PortfolioControlPlane,
+    activate_portfolio,
+    approve_portfolio_proposal,
+    create_portfolio_proposal,
+)
 from app.core.research import (  # noqa: E402
     evaluate_artifact_robustness,
     promotion_recommendation,
@@ -393,6 +398,43 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return AgenticControlPlane().submit(run_id=getattr(args, "run_id", None))
     if mode == "portfolio-prepare":
         return PortfolioControlPlane().prepare_all()
+    if mode == "portfolio-propose":
+        assignments = json.loads(Path(getattr(args, "assignments_path", "")).read_text())
+        proposal, proposal_path = create_portfolio_proposal(
+            settings.MODEL_REGISTRY_DIR,
+            assignments,
+        )
+        return {
+            "ok": True,
+            "status": "AWAITING_HUMAN_PORTFOLIO_APPROVAL",
+            "proposal_id": proposal["proposal_id"],
+            "proposal_path": str(proposal_path),
+            "approval_challenge": proposal["approval_challenge"],
+            "approval_expires_at": proposal["approval_expires_at"],
+            "assignments": proposal["assignments"],
+        }
+    if mode == "portfolio-approve":
+        approval_path = approve_portfolio_proposal(
+            getattr(args, "portfolio_proposal_path", None),
+            challenge=getattr(args, "challenge", None),
+            actor=getattr(args, "actor", None) or "human-operator",
+        )
+        return {
+            "ok": True,
+            "status": "PORTFOLIO_APPROVED",
+            "approval_path": str(approval_path),
+        }
+    if mode == "portfolio-activate":
+        current_path = activate_portfolio(
+            settings.MODEL_REGISTRY_DIR,
+            getattr(args, "portfolio_proposal_path", None),
+        )
+        return {
+            "ok": True,
+            "status": "PORTFOLIO_ACTIVATED",
+            "current_path": str(current_path),
+            "summary": "Portfolio assignments activated. No submission or stake change occurred.",
+        }
     if mode == "score-listen":
         return PerformanceListener(
             Path(settings.CONTROL_PLANE_DIR),
@@ -495,6 +537,9 @@ def parse_args() -> argparse.Namespace:
             "agent-approve",
             "agent-submit",
             "portfolio-prepare",
+            "portfolio-propose",
+            "portfolio-approve",
+            "portfolio-activate",
             "score-listen",
             "research-evaluate",
             "model-approve",
@@ -513,6 +558,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--artifact-path", help="Approved pickle artifact for agent-prepare.")
     parser.add_argument("--model-name", help="Model label for research artifacts.")
     parser.add_argument("--manifest-path", help="Frozen candidate manifest for promotion.")
+    parser.add_argument("--assignments-path", help="JSON list of proposed portfolio assignments.")
+    parser.add_argument(
+        "--portfolio-proposal-path",
+        help="Frozen portfolio proposal for approval or activation.",
+    )
     parser.add_argument("--run-id", help="Readiness run id for approval or submission.")
     parser.add_argument("--challenge", help="Human approval challenge from readiness packet.")
     parser.add_argument("--actor", help="Human operator identity recorded in the audit log.")
