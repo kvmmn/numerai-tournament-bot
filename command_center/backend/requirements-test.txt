@@ -1,4 +1,5 @@
 cloudpickle
+httpx
 numerai-tools
 numerapi
 numpy
