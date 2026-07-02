@@ -26,9 +26,9 @@ deployed runtime has exercised that path against the current account.
 | Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Five jobs loaded | Live verified |
 | Independent watchdogs | Codex jobs inspect runtime reports after native jobs | Four active watchdogs | Live verified |
 | GitHub quality gate | Tests and compile check on draft PR | GitHub Actions | Live verified |
-| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Runtime manager tests | Implemented |
-| State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | Runtime manager tests | Implemented |
-| Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup job | Implemented |
+| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `c6e8d84` deployed with 74/74 checksum parity | Live verified |
+| State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | 95-file staging restore; ledger/model hashes matched | Live verified |
+| Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup exit 0; 19 MB archive | Live verified |
 
 ## Current action queue
 
