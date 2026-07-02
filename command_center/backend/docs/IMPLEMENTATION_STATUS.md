@@ -9,7 +9,7 @@
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
 | Native scheduling | Complete | Ten `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
 | Platform/API migration monitoring | Complete | Live 7/7 API, data-version, round, mapping, local schema, and stake-read contracts passed |
-| Manual/scheduled runtime parity | Complete | Installed backend resolves the same sibling data directory with or without LaunchAgent environment |
+| Manual/scheduled runtime parity | Complete | Live `DATA_DIR`-unset platform check passed 7/7 against the sibling runtime data directory |
 | Cross-job health supervision | Complete | Live `SYSTEM_HEALTHY`: 9/9 workers loaded with fresh successful evidence |
 | Runtime deployment and rollback | Complete | Test, stage, checksum, backup, atomic replace, audit |
 | State backup and restore | Complete | Credential-free manifest, archive verification, guarded live restore |

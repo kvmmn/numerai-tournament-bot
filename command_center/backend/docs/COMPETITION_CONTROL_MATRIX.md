@@ -13,6 +13,7 @@ deployed runtime has exercised that path against the current account.
 | Correct live predictions | Exact live IDs, finite range, diversity and checksum | Round-1302 readiness packets | Live verified |
 | Correct target slot | Case-insensitive explicit model mapping; one packet per UUID | Three account models resolved | Live verified |
 | Platform compatibility | API/account/round/data/mapping/stake-read contracts | Live `PLATFORM_COMPATIBLE`: 7/7 contracts passed | Live verified |
+| Manual/scheduled path parity | Installed runtime resolves one sibling data root | Manual `DATA_DIR`-unset check passed 7/7 | Live verified |
 | Submission deadline | Round `closeTime`, native 11:00 inspection | Native report exit 0 | Live verified |
 | Submission execution | Human challenge, expiring approval, idempotent ledger | `kvmmn_te` round-1302 submission | Live verified |
 | Multi-slot coverage | Portfolio-wide prepare/status with submitted-slot skip | Production plus two shadows | Live verified |
@@ -26,8 +27,8 @@ deployed runtime has exercised that path against the current account.
 | Stake retry safety | Proposal hash, stale-balance check, execution intent | Unit tests | Implemented |
 | Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Ten jobs loaded | Live verified |
 | Independent watchdogs | Codex jobs inspect runtime reports after native jobs | Five active watchdogs | Live verified |
-| GitHub quality gate | Tests and compile check on draft PR | GitHub Actions | Live verified |
-| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `44dfc67` deployed with 89/89 checksum parity | Live verified |
+| GitHub quality gate | Tests and compile check on draft PR | GitHub Actions: 98 tests passed | Live verified |
+| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `1260183` deployed with 90/90 checksum parity | Live verified |
 | State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | 95-file staging restore; ledger/model hashes matched | Live verified |
 | Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup exit 0; 19 MB archive | Live verified |
 | Round participation | Per-slot verified coverage and local submission streak | Round-1302 live snapshot | Live verified |
