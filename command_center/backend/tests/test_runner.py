@@ -35,6 +35,15 @@ class GovernedRunnerTests(unittest.TestCase):
         )
         snapshot.assert_called_once_with()
 
+    def test_platform_status_is_read_only_dispatch(self):
+        with patch(
+            "automation.daily_numerai_run.PlatformHealthMonitor.snapshot",
+            return_value={"ok": True, "status": "PLATFORM_COMPATIBLE"},
+        ) as snapshot:
+            result = run_mode("platform-status")
+        self.assertEqual(result["status"], "PLATFORM_COMPATIBLE")
+        snapshot.assert_called_once_with()
+
     def test_alert_dispatch_uses_durable_runtime_reports(self):
         with patch(
             "automation.daily_numerai_run.AlertDispatcher.dispatch",

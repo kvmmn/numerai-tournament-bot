@@ -26,6 +26,7 @@ broadcast submission, automatic promotion, or automatic stake mutation.
 - [Operating system map](docs/OPERATING_SYSTEM.md)
 - [Competition control matrix](docs/COMPETITION_CONTROL_MATRIX.md)
 - [Competition and season tracking](docs/COMPETITION_TRACKING.md)
+- [Platform and data-version compatibility](docs/PLATFORM_COMPATIBILITY.md)
 - [Modeling and optimization](docs/MODELING_AND_OPTIMIZATION.md)
 - [Operator runbook](docs/RUNBOOK.md)
 - [Runtime deployment and recovery](docs/RUNTIME_RECOVERY.md)
@@ -55,6 +56,7 @@ Run these from the runtime backend with its virtual environment:
 ```bash
 # Read-only status
 python automation/daily_numerai_run.py --mode portfolio-status --strict
+python automation/daily_numerai_run.py --mode platform-status --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 
@@ -88,6 +90,7 @@ stake changes.
 
 | Local time | Native job | Mutation? |
 |---|---|---|
+| 10:45 daily | Platform/API/data compatibility | No |
 | 11:00 daily | Deadline and portfolio coverage | No |
 | 15:00 daily | Portfolio readiness preparation | No |
 | 15:20 daily | Coverage, streak, rank, and season status | No |

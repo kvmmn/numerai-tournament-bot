@@ -103,6 +103,31 @@ class AlertDispatcherTests(unittest.TestCase):
             self.assertEqual(ledger["delivered"], {})
             self.assertEqual(len(ledger["failures"]), 2)
 
+    def test_platform_contract_warning_is_actionable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            state = root / "state"
+            self.write(
+                state / "platform" / "latest.json",
+                {
+                    "status": "PLATFORM_MIGRATION_REVIEW",
+                    "generated_at": "2026-07-02T08:45:00+00:00",
+                    "failures": [],
+                    "warnings": ["REMOTE_DATA_VERSION"],
+                },
+            )
+            notifications = []
+            result = AlertDispatcher(
+                state,
+                root / "reports",
+                notifier=lambda title, message: notifications.append(
+                    (title, message)
+                ),
+            ).dispatch()
+            self.assertEqual(result["status"], "ALERTS_DELIVERED")
+            self.assertEqual(result["delivered"][0]["category"], "platform")
+            self.assertIn("REMOTE_DATA_VERSION", notifications[0][1])
+
 
 if __name__ == "__main__":
     unittest.main()

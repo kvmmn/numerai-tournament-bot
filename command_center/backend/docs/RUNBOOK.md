@@ -41,6 +41,7 @@ local manifest and expires after 24 hours.
 
 ```bash
 python automation/daily_numerai_run.py --mode numerapi-preflight --strict
+python automation/daily_numerai_run.py --mode platform-status --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 python automation/daily_numerai_run.py --mode competition-status --strict
@@ -55,6 +56,8 @@ python -m unittest discover -s tests -v
 
 | Failure | Action |
 |---|---|
+| Platform contract broken | Keep mutations gated; inspect the failed contract in `automation/state/platform/latest.json` |
+| New remote data version | Test migration on a branch; do not switch production automatically |
 | Dataset integrity | Keep old file, download to `.partial`, validate, then replace |
 | Constant predictions | Reject model; retrain or fix features |
 | Recent regime regression | Revoke packet; add research experiment |

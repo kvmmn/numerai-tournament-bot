@@ -48,13 +48,14 @@ python automation/daily_numerai_run.py --mode portfolio-prepare --strict
 ```bash
 cd "$HOME/Library/Application Support/Numerai/runtime/backend"
 python automation/daily_numerai_run.py --mode mcp-preflight
+python automation/daily_numerai_run.py --mode platform-status --strict
 python automation/daily_numerai_run.py --mode portfolio-status --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 python -m unittest discover -s tests
 ```
 
 ## Automation strategy
-1. Let macOS `launchd` run deadline, portfolio, competition, outcome,
+1. Let macOS `launchd` run platform, deadline, portfolio, competition, outcome,
    stake-audit, alerts, backup, and research jobs.
 2. Let Codex watchdogs inspect each native report 15–30 minutes later.
 3. Record approval only after a human checks the round, model, artifact hash,
@@ -81,6 +82,7 @@ reports, model assignments, and logs. Keep credentials in
 GitHub; deploy tested source changes to the runtime before reloading jobs.
 
 ## Suggested cadence
+- Native platform compatibility monitor: every day at 10:45 local time.
 - Native readiness preparation: every day at 15:00 local time.
 - Native competition tracker: every day at 15:20 local time.
 - Codex readiness watchdog: every day at 15:30 local time.

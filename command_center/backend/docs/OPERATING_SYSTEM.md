@@ -27,7 +27,7 @@ flowchart LR
 
 | Agent | Simple job | Can change money/platform state? |
 |---|---|---|
-| Platform Scout | Finds the round, deadline, and model slot | No |
+| Platform Scout | Verifies API/data contracts, round, deadline, and model slots | No |
 | Data Steward | Refreshes data and detects damaged files | No |
 | Portfolio Governor | Maps each slot to one distinct approved artifact | No |
 | Prediction Agent | Produces predictions from one frozen model | No |
@@ -44,6 +44,7 @@ flowchart LR
 
 | Trigger | What runs | Expected result |
 |---|---|---|
+| Every day, 10:45 / 11:05 | Native Platform Monitor / native alert | API, data-version, round, mapping, and stake-read compatibility |
 | Every day, 11:00 / 11:15 | Native Deadline Guard / Codex watchdog | Missing/ready/submitted warning before close |
 | Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
 | Every day, 15:20 / 15:30 | Native Competition Status / shared Codex watchdog | Coverage, streak, rank, and season progress |
@@ -65,6 +66,8 @@ durable report identity.
 ## Fail-closed rules
 
 - A damaged dataset is replaced atomically before use.
+- A broken platform contract fails before the daily workflow; a newer data
+  version opens a migration review rather than switching production.
 - Constant raw predictions are rejected before ranking.
 - One readiness packet targets one Numerai model.
 - One active portfolio assignment targets one slot, and duplicate artifact

@@ -110,6 +110,29 @@ class AlertDispatcher:
 
     def collect(self) -> list[dict[str, Any]]:
         candidates = []
+        platform_path = self.state_dir / "platform" / "latest.json"
+        platform = self._load(platform_path)
+        if platform and platform.get("status") in {
+            "PLATFORM_CONTRACT_BROKEN",
+            "PLATFORM_MIGRATION_REVIEW",
+        }:
+            issue_codes = [
+                *platform.get("failures", []),
+                *platform.get("warnings", []),
+            ]
+            candidates.append(
+                self._candidate(
+                    category="platform",
+                    title="Numerai platform compatibility",
+                    message=(
+                        ", ".join(str(code) for code in issue_codes)
+                        or str(platform.get("status"))
+                    ),
+                    source=platform_path,
+                    payload=platform,
+                )
+            )
+
         competition_path = self.state_dir / "competition" / "latest.json"
         competition = self._load(competition_path)
         if competition and competition.get("status") in {
