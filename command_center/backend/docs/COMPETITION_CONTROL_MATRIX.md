@@ -12,7 +12,7 @@ deployed runtime has exercised that path against the current account.
 | Portfolio diversity | Unique artifact checksums and correlation ceiling | Three-slot active portfolio | Live verified |
 | Correct live predictions | Exact live IDs, finite range, diversity and checksum | Round-1302 readiness packets | Live verified |
 | Correct target slot | Case-insensitive explicit model mapping; one packet per UUID | Three account models resolved | Live verified |
-| Platform compatibility | API/account/round/data/mapping/stake-read contracts | Daily 10:45 read-only monitor | Implemented |
+| Platform compatibility | API/account/round/data/mapping/stake-read contracts | Live `PLATFORM_COMPATIBLE`: 7/7 contracts passed | Live verified |
 | Submission deadline | Round `closeTime`, native 11:00 inspection | Native report exit 0 | Live verified |
 | Submission execution | Human challenge, expiring approval, idempotent ledger | `kvmmn_te` round-1302 submission | Live verified |
 | Multi-slot coverage | Portfolio-wide prepare/status with submitted-slot skip | Production plus two shadows | Live verified |
@@ -24,10 +24,10 @@ deployed runtime has exercised that path against the current account.
 | Stake increase | Live evidence, verified deployed artifact, caps, approval | Disabled: caps and available NMR are zero | Correctly gated |
 | Stake decrease | Live balance, per-change cap, approval, exact confirmation | Implemented; no decrease authorized | Correctly gated |
 | Stake retry safety | Proposal hash, stale-balance check, execution intent | Unit tests | Implemented |
-| Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Nine jobs configured | Implemented |
+| Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Nine jobs loaded | Live verified |
 | Independent watchdogs | Codex jobs inspect runtime reports after native jobs | Five active watchdogs | Live verified |
 | GitHub quality gate | Tests and compile check on draft PR | GitHub Actions | Live verified |
-| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `6be71bd` deployed with 81/81 checksum parity | Live verified |
+| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `b77c88c` deployed with 85/85 checksum parity | Live verified |
 | State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | 95-file staging restore; ledger/model hashes matched | Live verified |
 | Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup exit 0; 19 MB archive | Live verified |
 | Round participation | Per-slot verified coverage and local submission streak | Round-1302 live snapshot | Live verified |

@@ -8,7 +8,7 @@
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
 | Native scheduling | Complete | Nine `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
-| Platform/API migration monitoring | Complete | Daily API, data-version, round, mapping, local schema, and stake-read contracts |
+| Platform/API migration monitoring | Complete | Live 7/7 API, data-version, round, mapping, local schema, and stake-read contracts passed |
 | Runtime deployment and rollback | Complete | Test, stage, checksum, backup, atomic replace, audit |
 | State backup and restore | Complete | Credential-free manifest, archive verification, guarded live restore |
 | Competition/season telemetry | Complete | Coverage, streak, qualification, reputation, bounded account rank |
