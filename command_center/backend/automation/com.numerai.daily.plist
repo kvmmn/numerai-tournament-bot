@@ -16,9 +16,7 @@
         <string>/Users/kaveh/Desktop/base/_LAB/numerai/.venv/bin/python</string>
         <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center/automation/daily_numerai_run.py</string>
         <string>--mode</string>
-        <string>agent-prepare</string>
-        <string>--target-model</string>
-        <string>kvmmn_te</string>
+        <string>portfolio-prepare</string>
         <string>--strict</string>
     </array>
 

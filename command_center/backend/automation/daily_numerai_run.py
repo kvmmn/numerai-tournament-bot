@@ -51,6 +51,7 @@ from app.core.config import settings  # noqa: E402
 from app.core.agentic_control_plane import AgenticControlPlane  # noqa: E402
 from app.core.submission_guard import SubmissionGuardError  # noqa: E402
 from app.core.performance_listener import PerformanceListener  # noqa: E402
+from app.core.portfolio import PortfolioControlPlane  # noqa: E402
 from app.core.research import (  # noqa: E402
     evaluate_artifact_robustness,
     promotion_recommendation,
@@ -390,6 +391,8 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         )
     if mode == "agent-submit":
         return AgenticControlPlane().submit(run_id=getattr(args, "run_id", None))
+    if mode == "portfolio-prepare":
+        return PortfolioControlPlane().prepare_all()
     if mode == "score-listen":
         return PerformanceListener(
             Path(settings.CONTROL_PLANE_DIR),
@@ -491,6 +494,7 @@ def parse_args() -> argparse.Namespace:
             "agent-prepare",
             "agent-approve",
             "agent-submit",
+            "portfolio-prepare",
             "score-listen",
             "research-evaluate",
             "model-approve",

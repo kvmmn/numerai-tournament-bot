@@ -6,12 +6,14 @@
 | Prediction quality gate | Complete | Raw diversity checked before ranking |
 | Human-gated single-model submission | Complete | Round/model/file/evaluation approval identity |
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
+| Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
 | Outcome and postmortem trigger | Complete | Cursor-based read-only listener |
 | Temporal validation design | Complete | Ordered walk-forward folds, embargo, lockbox |
 | Robustness review | Complete | Overall/recent/regime/bootstrap packet |
 | Immutable champion bundle | Complete | Frozen members, weights, checksums, data snapshot |
 | Stake sizing and execution gates | Complete | Live-evidence policy plus dual confirmation |
-| Robust promotion candidate | Awaiting approval | Feature-family challenger passed development and lockbox |
+| Robust promotion candidate | Active | Feature-family champion submitted to `kvmmn_te` in round 1302 |
+| Additional portfolio slots | Research needed | Existing alternatives failed policy or lockbox |
 | Guaranteed winning model | Not claimable | Competition outcomes remain uncertain |
 | Live staking | Not authorized | Caps are zero; insufficient current-model live evidence |
 

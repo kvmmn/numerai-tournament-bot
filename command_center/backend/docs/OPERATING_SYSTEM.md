@@ -7,8 +7,9 @@ changes.
 ```mermaid
 flowchart LR
     A["Round opens"] --> B["Data Steward<br/>refresh + integrity check"]
-    B --> C["Prediction Agent<br/>build one target file"]
-    C --> D["Risk Judge<br/>history + recent regimes"]
+    B --> C["Portfolio Governor<br/>load distinct approved assignments"]
+    C --> D0["Prediction Agent<br/>one target file per assigned slot"]
+    D0 --> D["Risk Judge<br/>history + recent regimes"]
     D -->|pass| E["Readiness packet"]
     D -->|fail| F["Research backlog"]
     E --> G{"Human approval"}
@@ -27,6 +28,7 @@ flowchart LR
 |---|---|---|
 | Platform Scout | Finds the round, deadline, and model slot | No |
 | Data Steward | Refreshes data and detects damaged files | No |
+| Portfolio Governor | Maps each slot to one distinct approved artifact | No |
 | Prediction Agent | Produces predictions from one frozen model | No |
 | Risk Judge | Tests long-term and recent performance | No |
 | Governance Guard | Creates a time-limited approval challenge | No |
@@ -40,7 +42,7 @@ flowchart LR
 
 | Trigger | What runs | Expected result |
 |---|---|---|
-| Every day, 15:00 | Native Daily Readiness | Packet or a clear rejection reason |
+| Every day, 15:00 | Native Portfolio Readiness | Per-slot packet, submitted skip, or rejection |
 | Every day, 15:30 | Readiness Watchdog | Confirms the native run completed |
 | Every day, 11:00 | Deadline Guard | Missing/ready/submitted warning before close |
 | Every day, 18:00 | Score Listener | New outcomes or “nothing new” |
@@ -57,6 +59,8 @@ so it does not depend on Codex being open.
 - A damaged dataset is replaced atomically before use.
 - Constant raw predictions are rejected before ranking.
 - One readiness packet targets one Numerai model.
+- One active portfolio assignment targets one slot, and duplicate artifact
+  checksums across slots are rejected.
 - Approval is tied to the round, model UUID, prediction file, evaluation, actor,
   and expiry.
 - A revoked or changed packet cannot be submitted.
@@ -66,8 +70,8 @@ so it does not depend on Codex being open.
 
 ## Current state
 
-The first repaired model passed broad history but failed the newest 50-era
-regime, so its readiness packet was revoked. Seed and target ensembles also
-failed the lockbox. A later `small + serenity` feature-family challenger passed
-both development and lockbox checks and is frozen for human promotion review.
-It remains unsubmitted.
+The `small + serenity` feature-family champion is assigned to `kvmmn_te` and
+has a verified round-1302 submission. `kvmmn` and `kvmmn_fn` remain explicitly
+unassigned because every other existing candidate failed the full policy or
+untouched lockbox. The system will not duplicate one prediction stream merely
+to make all dashboard rows look active.

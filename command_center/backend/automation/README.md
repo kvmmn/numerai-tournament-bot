@@ -18,6 +18,8 @@ for Codex Automations.
 - `agent-approve`: records a human operator's challenge-bound approval.
 - `agent-submit`: verifies the approval, current round, target mapping, artifact
   hash, prediction schema, and idempotency ledger before one upload.
+- `portfolio-prepare`: loads the active distinct per-slot assignments, skips
+  already submitted slots, and prepares independent packets for the rest.
 
 Example:
 ```bash
@@ -27,6 +29,7 @@ python automation/daily_numerai_run.py --mode agent-approve \
   --run-id <run-id> --challenge <challenge> --actor <operator> --strict
 python automation/daily_numerai_run.py --mode agent-submit \
   --run-id <run-id> --strict
+python automation/daily_numerai_run.py --mode portfolio-prepare --strict
 ```
 
 ## Legacy modes
@@ -48,8 +51,8 @@ python automation/daily_numerai_run.py --mode mcp-submit --strict
 ```
 
 ## Automation strategy
-1. Let macOS `launchd` run `agent-prepare` daily.
-2. Let the Codex watchdog verify the readiness packet and report it in the inbox.
+1. Let macOS `launchd` run `portfolio-prepare` daily.
+2. Let the Codex watchdog verify every assigned and unassigned slot.
 3. Record approval only after a human checks the round, model, artifact hash,
    and prediction validation.
 4. Run `agent-submit` with the approved run id.
