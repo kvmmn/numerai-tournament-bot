@@ -398,6 +398,8 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return AgenticControlPlane().submit(run_id=getattr(args, "run_id", None))
     if mode == "portfolio-prepare":
         return PortfolioControlPlane().prepare_all()
+    if mode == "portfolio-status":
+        return PortfolioControlPlane().inspect()
     if mode == "portfolio-propose":
         assignments = json.loads(Path(getattr(args, "assignments_path", "")).read_text())
         proposal, proposal_path = create_portfolio_proposal(
@@ -537,6 +539,7 @@ def parse_args() -> argparse.Namespace:
             "agent-approve",
             "agent-submit",
             "portfolio-prepare",
+            "portfolio-status",
             "portfolio-propose",
             "portfolio-approve",
             "portfolio-activate",

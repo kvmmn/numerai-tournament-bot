@@ -41,6 +41,7 @@ class AgenticControlPlaneTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.artifact = self.root / "model.pkl"
         self.artifact.write_bytes(b"model")
+        (self.root / "validation.parquet").write_bytes(b"validation-snapshot")
         self.frame = pd.DataFrame(
             {
                 "id": [f"id-{index}" for index in range(100)],
@@ -66,6 +67,10 @@ class AgenticControlPlaneTests(unittest.TestCase):
             patch(
                 "app.core.agentic_control_plane.evaluate_artifact_robustness",
                 return_value={"packet_sha256": "packet"},
+            ),
+            patch(
+                "app.core.agentic_control_plane.data_dir",
+                return_value=self.root,
             ),
             patch(
                 "app.core.agentic_control_plane.promotion_recommendation",
@@ -132,6 +137,32 @@ class AgenticControlPlaneTests(unittest.TestCase):
                 self.artifact,
             )
 
+    def test_default_artifact_prefers_active_production_assignment(self):
+        registry = self.root / "registry"
+        current = registry / "portfolio" / "current.json"
+        current.parent.mkdir(parents=True)
+        current.write_text(
+            json.dumps(
+                {
+                    "assignments": [
+                        {
+                            "deployment_tier": "production",
+                            "artifact": {"path": str(self.artifact)},
+                        },
+                        {
+                            "deployment_tier": "shadow",
+                            "artifact": {"path": str(self.root / "shadow.pkl")},
+                        },
+                    ]
+                }
+            )
+        )
+        with patch.object(settings, "MODEL_REGISTRY_DIR", str(registry)):
+            self.assertEqual(
+                AgenticControlPlane._default_artifact(),
+                self.artifact,
+            )
+
     def test_shadow_prepare_uses_separate_zero_stake_policy(self):
         evidence = self.root / "shadow_evidence.json"
         evidence.write_text(
@@ -158,6 +189,10 @@ class AgenticControlPlaneTests(unittest.TestCase):
                 return_value={"packet_sha256": "packet"},
             ),
             patch(
+                "app.core.agentic_control_plane.data_dir",
+                return_value=self.root,
+            ),
+            patch(
                 "app.core.agentic_control_plane.shadow_recommendation",
                 return_value={"decision": "DEPLOY_SHADOW", "failures": []},
             ) as shadow_policy,
@@ -175,6 +210,42 @@ class AgenticControlPlaneTests(unittest.TestCase):
         self.assertFalse(result["validation"]["stake_eligible"])
         shadow_policy.assert_called_once()
         production_policy.assert_not_called()
+
+    def test_immutable_robustness_result_is_cached(self):
+        plane = AgenticControlPlane(self.root / "state", napi=self.napi)
+        with (
+            patch(
+                "app.core.agentic_control_plane.sync_datasets",
+                return_value={"downloaded": ["live.parquet"]},
+            ),
+            patch(
+                "app.core.agentic_control_plane.build_submission_dataframe",
+                return_value=self.frame,
+            ),
+            patch(
+                "app.core.agentic_control_plane.data_dir",
+                return_value=self.root,
+            ),
+            patch(
+                "app.core.agentic_control_plane.evaluate_artifact_robustness",
+                return_value={"packet_sha256": "packet"},
+            ) as evaluate,
+            patch(
+                "app.core.agentic_control_plane.promotion_recommendation",
+                return_value={"decision": "PROMOTE", "failures": []},
+            ),
+        ):
+            first = plane.prepare(
+                target_model="kvmmn_te",
+                artifact_path=self.artifact,
+            )
+            second = plane.prepare(
+                target_model="kvmmn_te",
+                artifact_path=self.artifact,
+            )
+        self.assertFalse(first["validation"]["robustness_cache_hit"])
+        self.assertTrue(second["validation"]["robustness_cache_hit"])
+        evaluate.assert_called_once()
 
 
 if __name__ == "__main__":

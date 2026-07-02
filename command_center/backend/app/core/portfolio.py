@@ -9,6 +9,7 @@ from typing import Any
 
 from .agentic_control_plane import AgenticControlPlane
 from .config import settings
+from .numerai_ops import sync_datasets
 from .submission_guard import resolve_single_model
 
 
@@ -300,6 +301,130 @@ class PortfolioControlPlane:
         self.state_dir = Path(state_dir or settings.CONTROL_PLANE_DIR)
         self.napi = napi
 
+    def _latest_readiness(
+        self,
+        *,
+        round_number: int,
+        model_id: str,
+    ) -> tuple[dict[str, Any] | None, Path | None]:
+        matches: list[tuple[str, dict[str, Any], Path]] = []
+        for path in (self.state_dir / "runs").glob("*/readiness.json"):
+            try:
+                packet = json.loads(path.read_text())
+            except (OSError, json.JSONDecodeError):
+                continue
+            if (
+                int(packet.get("round_number", -1)) == round_number
+                and packet.get("target_model_id") == model_id
+            ):
+                matches.append((str(packet.get("created_at", "")), packet, path))
+        if not matches:
+            return None, None
+        _, packet, path = max(matches, key=lambda row: row[0])
+        return packet, path
+
+    def inspect(self) -> dict[str, Any]:
+        """Read-only deadline and coverage status for every account model."""
+        portfolio = load_current_portfolio(self.registry_dir)
+        control = AgenticControlPlane(self.state_dir, napi=self.napi)
+        napi = control._api()
+        round_number = int(napi.get_current_round())
+        round_window = control._submission_window(napi, round_number)
+        models = napi.get_models()
+        assignments = {
+            row["model_name"].casefold(): row for row in portfolio["assignments"]
+        }
+        ledger_path = self.state_dir / "submission_ledger.json"
+        ledger = (
+            json.loads(ledger_path.read_text()).get("submissions", {})
+            if ledger_path.exists()
+            else {}
+        )
+        now = datetime.now(timezone.utc)
+        slots = []
+        for model_name, model_id in models.items():
+            assignment = assignments.get(model_name.casefold())
+            if assignment is None:
+                slots.append(
+                    {
+                        "model_name": model_name,
+                        "model_id": model_id,
+                        "status": "UNASSIGNED",
+                    }
+                )
+                continue
+            ledger_record = ledger.get(f"{round_number}:{model_id}")
+            if ledger_record:
+                status = (
+                    "SUBMITTED_VERIFIED"
+                    if ledger_record.get("verified")
+                    else "SUBMITTED_UNVERIFIED"
+                )
+                slots.append(
+                    {
+                        "model_name": model_name,
+                        "model_id": model_id,
+                        "deployment_tier": assignment["deployment_tier"],
+                        "stake_eligible": assignment["stake_eligible"],
+                        "status": status,
+                        "submission_id": ledger_record.get("submission_id"),
+                    }
+                )
+                continue
+            packet, packet_path = self._latest_readiness(
+                round_number=round_number,
+                model_id=model_id,
+            )
+            if packet is None:
+                status = "ASSIGNED_NOT_PREPARED"
+            elif now > datetime.fromisoformat(packet["approval_expires_at"]):
+                status = "READINESS_EXPIRED"
+            elif packet_path.with_name("approval.json").exists():
+                status = "APPROVED_NOT_SUBMITTED"
+            else:
+                status = "AWAITING_APPROVAL"
+            slots.append(
+                {
+                    "model_name": model_name,
+                    "model_id": model_id,
+                    "deployment_tier": assignment["deployment_tier"],
+                    "stake_eligible": assignment["stake_eligible"],
+                    "status": status,
+                    "run_id": packet.get("run_id") if packet else None,
+                    "approval_expires_at": (
+                        packet.get("approval_expires_at") if packet else None
+                    ),
+                }
+            )
+        statuses = {slot["status"] for slot in slots}
+        if statuses == {"SUBMITTED_VERIFIED"}:
+            status = "DEADLINE_GUARD_COMPLETE"
+        elif "UNASSIGNED" in statuses:
+            status = "DEADLINE_GUARD_PARTIAL_COVERAGE"
+        else:
+            status = "DEADLINE_GUARD_ACTION_REQUIRED"
+        close_at = round_window.get("closeTime")
+        seconds_remaining = None
+        if close_at:
+            seconds_remaining = max(
+                0,
+                int(
+                    (
+                        datetime.fromisoformat(close_at.replace("Z", "+00:00"))
+                        - now
+                    ).total_seconds()
+                ),
+            )
+        return {
+            "ok": True,
+            "status": status,
+            "read_only": True,
+            "round_number": round_number,
+            "round_window": round_window,
+            "seconds_remaining": seconds_remaining,
+            "slots": slots,
+        }
+
     def prepare_all(self) -> dict[str, Any]:
         portfolio = load_current_portfolio(self.registry_dir)
         control = AgenticControlPlane(self.state_dir, napi=self.napi)
@@ -308,6 +433,12 @@ class PortfolioControlPlane:
         models = napi.get_models()
         results = []
         assigned_model_keys: set[str] = set()
+        pending_assignments = []
+        for assignment in portfolio["assignments"]:
+            _, model_id = resolve_single_model(models, assignment["model_name"])
+            if not control.ledger.contains(round_number, model_id):
+                pending_assignments.append(assignment)
+        shared_data_report = sync_datasets(napi) if pending_assignments else None
         for assignment in portfolio["assignments"]:
             model_name, model_id = resolve_single_model(models, assignment["model_name"])
             assigned_model_keys.add(model_name.casefold())
@@ -331,6 +462,7 @@ class PortfolioControlPlane:
                         if assignment.get("evidence")
                         else None
                     ),
+                    data_report=shared_data_report,
                 )
             except Exception as exc:
                 result = {

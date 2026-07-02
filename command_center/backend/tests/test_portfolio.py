@@ -120,17 +120,86 @@ class PortfolioGovernanceTests(unittest.TestCase):
             with patch(
                 "app.core.portfolio.AgenticControlPlane.prepare"
             ) as prepare:
-                result = PortfolioControlPlane(
+                plane = PortfolioControlPlane(
                     registry_dir=registry,
                     state_dir=state,
                     napi=_FakeApi(),
-                ).prepare_all()
+                )
+                result = plane.prepare_all()
             self.assertTrue(result["ok"])
             self.assertEqual(result["status"], "PORTFOLIO_PARTIAL_COVERAGE")
             self.assertEqual(result["unassigned_count"], 1)
             self.assertFalse(result["coverage_complete"])
             self.assertEqual(result["results"][1]["status"], "UNASSIGNED")
             prepare.assert_not_called()
+            inspected = plane.inspect()
+            self.assertTrue(inspected["read_only"])
+            self.assertEqual(
+                inspected["status"],
+                "DEADLINE_GUARD_PARTIAL_COVERAGE",
+            )
+            self.assertEqual(
+                [slot["status"] for slot in inspected["slots"]],
+                ["SUBMITTED_VERIFIED", "UNASSIGNED"],
+            )
+
+    def test_prepare_all_syncs_round_data_once_for_multiple_slots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            registry = root / "registry"
+            state = root / "state"
+            assignments = []
+            for model_name, content in (
+                ("kvmmn", b"candidate-a"),
+                ("kvmmn_fn", b"candidate-b"),
+            ):
+                artifact = self._artifact(root, f"{model_name}.pkl", content)
+                assignments.append(
+                    {
+                        "model_name": model_name,
+                        "role": "core",
+                        "deployment_tier": "production",
+                        "stake_eligible": False,
+                        "artifact": {
+                            "path": str(artifact),
+                            "sha256": hashlib.sha256(content).hexdigest(),
+                            "size_bytes": len(content),
+                        },
+                        "evidence": None,
+                        "source_bundle_id": None,
+                    }
+                )
+            current_path = registry / "portfolio" / "current.json"
+            current_path.parent.mkdir(parents=True)
+            current_path.write_text(
+                json.dumps({"schema_version": 1, "assignments": assignments})
+            )
+            shared_report = {"round_number": 1302, "live_rows": 7_164}
+            with (
+                patch(
+                    "app.core.portfolio.sync_datasets",
+                    return_value=shared_report,
+                ) as sync,
+                patch(
+                    "app.core.portfolio.AgenticControlPlane.prepare",
+                    side_effect=[
+                        {"ok": True, "status": "AWAITING_HUMAN_APPROVAL"},
+                        {"ok": True, "status": "AWAITING_HUMAN_APPROVAL"},
+                    ],
+                ) as prepare,
+            ):
+                result = PortfolioControlPlane(
+                    registry_dir=registry,
+                    state_dir=state,
+                    napi=_FakeApi(),
+                ).prepare_all()
+            self.assertTrue(result["ok"])
+            sync.assert_called_once()
+            self.assertEqual(prepare.call_count, 2)
+            self.assertEqual(
+                [row.kwargs["data_report"] for row in prepare.call_args_list],
+                [shared_report, shared_report],
+            )
 
     def test_shadow_assignment_requires_evidence_and_cannot_stake(self):
         with tempfile.TemporaryDirectory() as temporary:

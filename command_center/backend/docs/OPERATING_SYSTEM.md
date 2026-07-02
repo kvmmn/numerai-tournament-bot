@@ -42,17 +42,18 @@ flowchart LR
 
 | Trigger | What runs | Expected result |
 |---|---|---|
-| Every day, 15:00 | Native Portfolio Readiness | Per-slot packet, submitted skip, or rejection |
-| Every day, 15:30 | Readiness Watchdog | Confirms the native run completed |
-| Every day, 11:00 | Deadline Guard | Missing/ready/submitted warning before close |
-| Every day, 18:00 | Score Listener | New outcomes or “nothing new” |
-| Sunday, 16:00 | Weekly Research Review | Robustness and promotion report |
+| Every day, 11:00 / 11:15 | Native Deadline Guard / Codex watchdog | Missing/ready/submitted warning before close |
+| Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
+| Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
+| Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
 | Human approves packet | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |
 | 20+ post-deployment resolved rounds | Stake review becomes eligible | Still requires caps and approval |
 
-Times are local to the automation host. Native readiness uses macOS `launchd`,
-so it does not depend on Codex being open.
+Times are local to the automation host. All execution uses macOS `launchd`, so
+it does not depend on Codex being open; Codex jobs only inspect the results.
+The native jobs execute from `~/Library/Application Support/Numerai` because
+macOS can deny unattended access to `Desktop` and `Documents`.
 
 ## Fail-closed rules
 

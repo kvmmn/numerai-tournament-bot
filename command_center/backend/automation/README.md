@@ -54,17 +54,37 @@ python automation/daily_numerai_run.py --mode mcp-submit --strict
 ```
 
 ## Automation strategy
-1. Let macOS `launchd` run `portfolio-prepare` daily.
-2. Let the Codex watchdog verify every assigned and unassigned slot.
+1. Let macOS `launchd` run deadline, portfolio, outcome, and research jobs.
+2. Let Codex watchdogs inspect each native report 15–30 minutes later.
 3. Record approval only after a human checks the round, model, artifact hash,
    and prediction validation.
 4. Run `agent-submit` with the approved run id.
 5. Monitor `automation/state/audit.jsonl` and `submission_ledger.json`.
 
+## Unattended runtime
+macOS privacy controls can prevent background jobs from opening code, Python
+environments, or data stored under `Desktop` and `Documents`. The installed
+jobs therefore use one self-contained runtime:
+
+```text
+~/Library/Application Support/Numerai/
+├── data/v5.2/
+└── runtime/
+    ├── .venv/
+    └── backend/
+```
+
+The runtime copy is the operational system of record for scheduled state,
+reports, model assignments, and logs. Keep credentials in
+`runtime/backend/.env` with mode `0600`. Source and documentation remain in
+GitHub; deploy tested source changes to the runtime before reloading jobs.
+
 ## Suggested cadence
 - Native readiness preparation: every day at 15:00 local time.
 - Codex readiness watchdog: every day at 15:30 local time.
-- Deadline guard: every day at 11:00 local time before the 14:00 close.
+- Native deadline guard / watchdog: every day at 11:00 / 11:15.
+- Native outcome listener / watchdog: every day at 18:00 / 18:15.
+- Native research / watchdog: Sunday at 16:00 / 16:15.
 - Submission is never scheduled; it requires a current, explicit approval.
 
 ## Failure handling
