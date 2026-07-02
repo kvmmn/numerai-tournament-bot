@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Deduplicated native notifications for actionable durable reports. -->
+    <key>Label</key>
+    <string>com.numerai.alerts</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin/python</string>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/daily_numerai_run.py</string>
+        <string>--mode</string>
+        <string>alert-dispatch</string>
+        <string>--strict</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>11</integer>
+            <key>Minute</key>
+            <integer>5</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>15</integer>
+            <key>Minute</key>
+            <integer>25</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>18</integer>
+            <key>Minute</key>
+            <integer>12</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>19</integer>
+            <key>Minute</key>
+            <integer>15</integer>
+        </dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/alerts_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/alerts_stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin</string>
+        <key>DATA_DIR</key>
+        <string>/Users/kaveh/Library/Application Support/Numerai/data</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

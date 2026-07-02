@@ -2,6 +2,23 @@
 
 A modular baseline tournament bot for the [Numerai](https://numer.ai) competition.
 
+## Agentic Winning OS
+
+The governed control plane lives in
+[`command_center/backend`](command_center/backend/README.md). It adds:
+
+- delegated data, prediction, risk, submission, outcome, research, and staking agents;
+- human-gated, checksum-bound submissions to one model slot;
+- dataset integrity, idempotency, verification, and postmortem triggers;
+- temporal robustness, immutable model bundles, and bounded optimization sweeps;
+- concise schematic guides for operators and model researchers.
+
+Start with the [Operating System Map](command_center/backend/docs/OPERATING_SYSTEM.md)
+and [Modeling Guide](command_center/backend/docs/MODELING_AND_OPTIMIZATION.md).
+
+The system does not claim guaranteed competition wins. It is designed to make
+good research repeatable and unsafe submissions or stake changes difficult.
+
 ## Setup
 
 1. **Environment**:

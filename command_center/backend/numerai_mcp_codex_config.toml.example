@@ -1,0 +1,8 @@
+[mcp_servers.numerai]
+url = "https://api-tournament.numer.ai/mcp/sse"
+bearer_token_env_var = "NUMERAI_MCP_AUTH"
+
+# Optional hardening:
+# required = true
+# startup_timeout_sec = 20
+# tool_timeout_sec = 120

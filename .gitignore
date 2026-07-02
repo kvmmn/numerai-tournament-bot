@@ -16,3 +16,14 @@ v5.2/
 
 # OS
 .DS_Store
+
+# Numerai control-plane runtime artifacts
+command_center/backend/automation/state/
+command_center/backend/automation/reports/
+command_center/backend/automation/logs/
+command_center/backend/automation/research/
+command_center/backend/automation/optimization/
+command_center/backend/automation/target_optimization/
+command_center/backend/automation/feature_optimization/
+command_center/backend/automation/ENABLE_SUBMIT
+command_center/backend/numerai_mcp_codex_config.toml

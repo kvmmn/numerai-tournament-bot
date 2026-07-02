@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Numerai Daily Readiness Preparation (never auto-submits) -->
+    <!-- Install: cp com.numerai.daily.plist ~/Library/LaunchAgents/ -->
+    <!-- Load:    launchctl load ~/Library/LaunchAgents/com.numerai.daily.plist -->
+    <!-- Unload:  launchctl unload ~/Library/LaunchAgents/com.numerai.daily.plist -->
+    <!-- Status:  launchctl list | grep numerai -->
+
+    <key>Label</key>
+    <string>com.numerai.daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin/python</string>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/daily_numerai_run.py</string>
+        <string>--mode</string>
+        <string>portfolio-prepare</string>
+        <string>--strict</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend</string>
+
+    <!-- Run daily at 15:00 local time, after the expected Numerai round open. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>15</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/daily_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/daily_stderr.log</string>
+
+    <!-- Environment -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin</string>
+        <key>DATA_DIR</key>
+        <string>/Users/kaveh/Library/Application Support/Numerai/data</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

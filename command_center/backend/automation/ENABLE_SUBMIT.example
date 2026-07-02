@@ -1,0 +1,5 @@
+# Deprecated compatibility marker.
+#
+# Creating automation/ENABLE_SUBMIT does not authorize or trigger a submission.
+# Use agent-prepare, inspect the readiness packet, explicitly approve its
+# run/challenge, and then run agent-submit.

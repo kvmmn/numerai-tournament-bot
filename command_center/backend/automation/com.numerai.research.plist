@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.numerai.research</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin/python</string>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/daily_numerai_run.py</string>
+        <string>--mode</string>
+        <string>research-evaluate</string>
+        <string>--strict</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>16</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/research_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/research_stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin</string>
+        <key>DATA_DIR</key>
+        <string>/Users/kaveh/Library/Application Support/Numerai/data</string>
+        <key>MPLCONFIGDIR</key>
+        <string>/private/tmp/matplotlib</string>
+        <key>LOKY_MAX_CPU_COUNT</key>
+        <string>8</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
