@@ -48,6 +48,7 @@ flowchart LR
 | Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
 | Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
+| Every day, 19:00 / 19:15 | Native State Backup / Codex watchdog | Verified credential-free recovery archive |
 | Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
 | Human approves packet | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |

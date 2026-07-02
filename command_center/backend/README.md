@@ -27,6 +27,7 @@ broadcast submission, automatic promotion, or automatic stake mutation.
 - [Competition control matrix](docs/COMPETITION_CONTROL_MATRIX.md)
 - [Modeling and optimization](docs/MODELING_AND_OPTIMIZATION.md)
 - [Operator runbook](docs/RUNBOOK.md)
+- [Runtime deployment and recovery](docs/RUNTIME_RECOVERY.md)
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md)
 
 ## Canonical runtime
@@ -90,6 +91,7 @@ stake changes.
 | 15:00 daily | Portfolio readiness preparation | No |
 | 18:00 daily | Outcome listener and postmortem trigger | No |
 | 18:05 daily | Stake/portfolio policy reconciliation | No |
+| 19:00 daily | Verified state backup with seven-copy retention | Local files only |
 | 16:00 Sunday | Production robustness review | No |
 
 Codex watchdogs inspect these reports shortly afterward. Submissions,

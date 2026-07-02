@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Credential-free, checksum-verified state backup with seven-day retention. -->
+    <key>Label</key>
+    <string>com.numerai.backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin/python</string>
+        <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/runtime_ops.py</string>
+        <string>--strict</string>
+        <string>backup-state</string>
+        <string>--keep</string>
+        <string>7</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>19</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/backup_stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kaveh/Library/Application Support/Numerai/runtime/backend/automation/logs/backup_stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/kaveh/Library/Application Support/Numerai/runtime/.venv/bin</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

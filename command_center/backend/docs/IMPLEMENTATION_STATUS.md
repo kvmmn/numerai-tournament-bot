@@ -7,7 +7,9 @@
 | Human-gated single-model submission | Complete | Round/model/file/evaluation approval identity |
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
-| Native scheduling | Complete | Five `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
+| Native scheduling | Complete | Six `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
+| Runtime deployment and rollback | Complete | Test, stage, checksum, backup, atomic replace, audit |
+| State backup and restore | Complete | Credential-free manifest, archive verification, guarded live restore |
 | Preparation efficiency | Complete | One live refresh per portfolio cycle and immutable robustness cache |
 | Outcome and postmortem trigger | Complete | Cursor-based listener plus deduplicated durable incident |
 | Temporal validation design | Complete | Ordered walk-forward folds, embargo, lockbox |

@@ -26,6 +26,9 @@ deployed runtime has exercised that path against the current account.
 | Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Five jobs loaded | Live verified |
 | Independent watchdogs | Codex jobs inspect runtime reports after native jobs | Four active watchdogs | Live verified |
 | GitHub quality gate | Tests and compile check on draft PR | GitHub Actions | Live verified |
+| Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Runtime manager tests | Implemented |
+| State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | Runtime manager tests | Implemented |
+| Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup job | Implemented |
 
 ## Current action queue
 
@@ -45,8 +48,7 @@ deployed runtime has exercised that path against the current account.
 
 These items are useful but do not justify unsafe shortcuts in the live path:
 
-- add a tested one-command source-to-runtime deployment and rollback procedure;
-- add encrypted/off-host backup and restore verification for runtime state;
+- copy verified local backups to encrypted/off-host storage;
 - monitor Numerai data-version and staking-API migrations;
 - add season/leaderboard tracking after enough qualifying live rounds exist;
 - add a delivery channel for urgent alerts that does not depend on Codex being
