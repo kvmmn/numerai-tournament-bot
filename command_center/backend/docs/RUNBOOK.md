@@ -43,6 +43,8 @@ local manifest and expires after 24 hours.
 python automation/daily_numerai_run.py --mode numerapi-preflight --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
+python automation/daily_numerai_run.py --mode competition-status --strict
+python automation/daily_numerai_run.py --mode alert-dispatch --strict
 python automation/daily_numerai_run.py --mode research-evaluate --strict
 python automation/runtime_ops.py --strict audit
 python automation/runtime_ops.py --strict backup-state --keep 7

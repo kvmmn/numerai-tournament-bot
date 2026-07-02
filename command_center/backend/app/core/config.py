@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     MAX_MODEL_STAKE_NMR: float = 0.0
     MAX_STAKE_CHANGE_NMR: float = 0.0
 
+    # --- Competition participation and season monitoring ---
+    SEASON_QUALIFYING_ROUNDS: int = 20
+    SEASON_MIN_AT_RISK_NMR: float = 1.0
+    ACCOUNT_RANK_SCAN_LIMIT: int = 1000
+
     # Numerai MCP (remote) config
     NUMERAI_MCP_URL: str = "https://api-tournament.numer.ai/mcp/sse"
     # Format expected by Numerai docs: "Token PUBLIC_KEY$PRIVATE_KEY"

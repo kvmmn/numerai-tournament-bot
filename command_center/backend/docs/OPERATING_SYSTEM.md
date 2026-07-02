@@ -46,6 +46,7 @@ flowchart LR
 |---|---|---|
 | Every day, 11:00 / 11:15 | Native Deadline Guard / Codex watchdog | Missing/ready/submitted warning before close |
 | Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
+| Every day, 15:20 / 15:30 | Native Competition Status / shared Codex watchdog | Coverage, streak, rank, and season progress |
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
 | Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
 | Every day, 19:00 / 19:15 | Native State Backup / Codex watchdog | Verified credential-free recovery archive |
@@ -58,6 +59,8 @@ Times are local to the automation host. All execution uses macOS `launchd`, so
 it does not depend on Codex being open; Codex jobs only inspect the results.
 The native jobs execute from `~/Library/Application Support/Numerai` because
 macOS can deny unattended access to `Desktop` and `Documents`.
+Native notifications run at 11:05, 15:25, and 18:12 and deduplicate against
+durable report identity.
 
 ## Fail-closed rules
 

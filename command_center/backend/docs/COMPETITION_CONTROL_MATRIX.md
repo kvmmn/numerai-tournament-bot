@@ -23,12 +23,16 @@ deployed runtime has exercised that path against the current account.
 | Stake increase | Live evidence, verified deployed artifact, caps, approval | Disabled: caps and available NMR are zero | Correctly gated |
 | Stake decrease | Live balance, per-change cap, approval, exact confirmation | Implemented; no decrease authorized | Correctly gated |
 | Stake retry safety | Proposal hash, stale-balance check, execution intent | Unit tests | Implemented |
-| Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Five jobs loaded | Live verified |
+| Unattended execution | Privacy-safe Library runtime and `launchd` jobs | Eight jobs configured | Implemented |
 | Independent watchdogs | Codex jobs inspect runtime reports after native jobs | Four active watchdogs | Live verified |
 | GitHub quality gate | Tests and compile check on draft PR | GitHub Actions | Live verified |
 | Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `c6e8d84` deployed with 74/74 checksum parity | Live verified |
 | State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | 95-file staging restore; ledger/model hashes matched | Live verified |
 | Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup exit 0; 19 MB archive | Live verified |
+| Round participation | Per-slot verified coverage and local submission streak | Round-1302 live snapshot | Implemented |
+| Season qualification | Participating rounds, total at-risk, 20-round progress | Numerai performance API | Implemented |
+| Reputation and rank | Model reputation age plus bounded account-rank scan | Numerai leaderboard APIs | Implemented |
+| Urgent local alerts | Deduplicated deadline/readiness/stake/postmortem notifications | Alert dispatcher tests | Implemented |
 
 ## Current action queue
 
@@ -50,9 +54,7 @@ These items are useful but do not justify unsafe shortcuts in the live path:
 
 - copy verified local backups to encrypted/off-host storage;
 - monitor Numerai data-version and staking-API migrations;
-- add season/leaderboard tracking after enough qualifying live rounds exist;
-- add a delivery channel for urgent alerts that does not depend on Codex being
-  open.
+- add an optional off-device alert channel for machine/network outages.
 
 The matrix should be updated whenever live evidence changes. Passing unit tests
 alone does not move an item to “Live verified.”

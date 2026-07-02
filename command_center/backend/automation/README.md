@@ -54,8 +54,8 @@ python -m unittest discover -s tests
 ```
 
 ## Automation strategy
-1. Let macOS `launchd` run deadline, portfolio, outcome, stake-audit, backup,
-   and research jobs.
+1. Let macOS `launchd` run deadline, portfolio, competition, outcome,
+   stake-audit, alerts, backup, and research jobs.
 2. Let Codex watchdogs inspect each native report 15–30 minutes later.
 3. Record approval only after a human checks the round, model, artifact hash,
    and prediction validation.
@@ -82,12 +82,14 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 
 ## Suggested cadence
 - Native readiness preparation: every day at 15:00 local time.
+- Native competition tracker: every day at 15:20 local time.
 - Codex readiness watchdog: every day at 15:30 local time.
 - Native deadline guard / watchdog: every day at 11:00 / 11:15.
 - Native outcome listener / watchdog: every day at 18:00 / 18:15.
 - Native stake audit / shared watchdog: every day at 18:05 / 18:15.
 - Native verified state backup: every day at 19:00.
 - Native research / watchdog: Sunday at 16:00 / 16:15.
+- Native deduplicated alerts: 11:05, 15:25, and 18:12.
 - Submission is never scheduled; it requires a current, explicit approval.
 
 ## Failure handling

@@ -20,6 +20,30 @@ class GovernedRunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "STAKE_POLICY_OK")
         inspect.assert_called_once_with()
 
+    def test_competition_status_is_read_only_dispatch(self):
+        with patch(
+            "automation.daily_numerai_run.CompetitionTracker.snapshot",
+            return_value={
+                "ok": True,
+                "status": "COMPETITION_CURRENT_ROUND_COMPLETE",
+            },
+        ) as snapshot:
+            result = run_mode("competition-status")
+        self.assertEqual(
+            result["status"],
+            "COMPETITION_CURRENT_ROUND_COMPLETE",
+        )
+        snapshot.assert_called_once_with()
+
+    def test_alert_dispatch_uses_durable_runtime_reports(self):
+        with patch(
+            "automation.daily_numerai_run.AlertDispatcher.dispatch",
+            return_value={"ok": True, "status": "NO_NEW_ALERTS"},
+        ) as dispatch:
+            result = run_mode("alert-dispatch")
+        self.assertEqual(result["status"], "NO_NEW_ALERTS")
+        dispatch.assert_called_once_with()
+
     def test_stake_mutations_require_explicit_arguments(self):
         args = argparse.Namespace(
             target_model="kvmmn",

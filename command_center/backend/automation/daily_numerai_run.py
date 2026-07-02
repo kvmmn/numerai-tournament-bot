@@ -62,6 +62,8 @@ from app.core.model_registry import (  # noqa: E402
     promote_candidate_bundle,
 )
 from app.core.staking import StakeControlPlane  # noqa: E402
+from app.core.competition import CompetitionTracker  # noqa: E402
+from app.core.alerts import AlertDispatcher  # noqa: E402
 
 
 REPORTS_DIR = BACKEND_ROOT / "automation" / "reports"
@@ -461,6 +463,13 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
             proposal_path=getattr(args, "stake_proposal_path", None),
             confirmation=getattr(args, "confirmation", None),
         )
+    if mode == "competition-status":
+        return CompetitionTracker().snapshot()
+    if mode == "alert-dispatch":
+        return AlertDispatcher(
+            Path(settings.CONTROL_PLANE_DIR),
+            REPORTS_DIR,
+        ).dispatch()
     if mode == "score-listen":
         return PerformanceListener(
             Path(settings.CONTROL_PLANE_DIR),
@@ -570,6 +579,8 @@ def parse_args() -> argparse.Namespace:
             "stake-propose",
             "stake-approve",
             "stake-execute",
+            "competition-status",
+            "alert-dispatch",
             "score-listen",
             "research-evaluate",
             "model-approve",
