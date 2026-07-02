@@ -42,6 +42,10 @@ flowchart TD
 
 This avoids “optimizing” by repeatedly looking at the same answers.
 
+At prediction time, the loader reads the exact feature union declared inside
+the frozen model. It does not assume one global feature set, so a specialized
+ensemble cannot silently receive the wrong live columns.
+
 ## Experiment evidence
 
 The neutralized baseline produced:

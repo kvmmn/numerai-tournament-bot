@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from .config import settings
-from .numerai_ops import data_dir, load_features
+from .numerai_ops import data_dir, load_features, predictor_features
 
 
 class ResearchError(RuntimeError):
@@ -224,15 +224,18 @@ def evaluate_artifact_robustness(
     artifact_path = Path(artifact_path)
     if not artifact_path.exists():
         raise ResearchError(f"Model artifact is missing: {artifact_path}")
-    features = load_features(feature_set or settings.FEATURE_SET)
+    with artifact_path.open("rb") as handle:
+        predict = cloudpickle.load(handle)
+    features = predictor_features(
+        predict,
+        fallback_feature_set=feature_set or settings.FEATURE_SET,
+    )
     validation_path = data_dir() / "validation.parquet"
     validation = pd.read_parquet(
         validation_path,
         columns=["era", "target"] + features,
     )
     validation = validation[validation["target"].notna()].copy()
-    with artifact_path.open("rb") as handle:
-        predict = cloudpickle.load(handle)
     predictions = predict(validation[["era"] + features], None)["prediction"]
     if predictions.isna().any() or predictions.nunique() < 100:
         raise ResearchError("Model predictions are null or insufficiently diverse.")

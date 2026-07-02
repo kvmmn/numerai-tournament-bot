@@ -93,6 +93,36 @@ def load_features(feature_set: str | None = None) -> list[str]:
     return feature_sets[selected]
 
 
+def predictor_features(
+    predict_fn: Any,
+    fallback_feature_set: str | None = None,
+) -> list[str]:
+    """Return the exact feature union declared by a packaged predictor."""
+    required: set[str] = set()
+
+    explicit = getattr(predict_fn, "features", None)
+    if explicit:
+        required.update(explicit)
+
+    members = getattr(predict_fn, "members", None)
+    if isinstance(members, dict):
+        for member in members.values():
+            if (
+                isinstance(member, (tuple, list))
+                and len(member) >= 2
+                and isinstance(member[1], (tuple, list))
+            ):
+                required.update(member[1])
+
+    neutralization = getattr(predict_fn, "neutralization_features", None)
+    if neutralization:
+        required.update(neutralization)
+
+    if required:
+        return sorted(required)
+    return load_features(fallback_feature_set or settings.FEATURE_SET)
+
+
 # ---------------------------------------------------------------------------
 # Data sync
 # ---------------------------------------------------------------------------
@@ -693,7 +723,6 @@ def build_submission_dataframe(path: str | None = None) -> pd.DataFrame:
     if not artifact_path.exists():
         raise NumeraiOpsError(f"Missing model artifact: {artifact_path}")
 
-    features = load_features(settings.FEATURE_SET)
     live_path = data_dir() / "live.parquet"
     if not live_path.exists():
         raise NumeraiOpsError(f"Missing live data: {live_path}")
@@ -701,6 +730,7 @@ def build_submission_dataframe(path: str | None = None) -> pd.DataFrame:
     with artifact_path.open("rb") as f:
         predict_fn = cloudpickle.load(f)
 
+    features = predictor_features(predict_fn)
     live_df = pd.read_parquet(live_path, columns=["era"] + features)
     preds = predict_fn(live_df[["era"] + features], None)
     if "prediction" not in preds.columns:
