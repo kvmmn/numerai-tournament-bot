@@ -163,8 +163,6 @@ class RuntimeManager:
     ):
         self.source_root = Path(source_root).resolve()
         self.runtime_root = Path(runtime_root).resolve()
-        if self.source_root == self.runtime_root:
-            raise RuntimeManagerError("Source and runtime roots must be different.")
         self.backup_dir = Path(
             backup_dir
             or self.runtime_root.parents[1] / "backups"
@@ -173,7 +171,14 @@ class RuntimeManager:
             self.runtime_root / DEPLOYMENT_MANIFEST_NAME
         )
 
+    def _require_distinct_source(self) -> None:
+        if self.source_root == self.runtime_root:
+            raise RuntimeManagerError(
+                "Source and runtime roots must be different for code operations."
+            )
+
     def audit(self) -> dict[str, Any]:
+        self._require_distinct_source()
         paths = managed_source_files(self.source_root)
         source_manifest = _manifest_for_files(self.source_root, paths)
         missing = []
@@ -323,6 +328,7 @@ class RuntimeManager:
         run_tests: bool = True,
         python_path: str | Path | None = None,
     ) -> dict[str, Any]:
+        self._require_distinct_source()
         if run_tests:
             self._run_source_tests(
                 Path(python_path).resolve() if python_path else None
@@ -411,6 +417,7 @@ class RuntimeManager:
         *,
         confirmation: str,
     ) -> dict[str, Any]:
+        self._require_distinct_source()
         backup_path = Path(backup_path).resolve()
         if not backup_path.is_file():
             raise RuntimeManagerError(f"Code backup is missing: {backup_path}")

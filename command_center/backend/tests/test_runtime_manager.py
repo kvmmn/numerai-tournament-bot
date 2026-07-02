@@ -155,6 +155,19 @@ class RuntimeManagerTests(unittest.TestCase):
         self.assertTrue(Path(third["backup_path"]).exists())
         self.assertEqual(third["retention_keep"], 2)
 
+    def test_backup_allows_runtime_as_default_source_but_deploy_does_not(self):
+        manager = RuntimeManager(
+            source_root=self.runtime,
+            runtime_root=self.runtime,
+            backup_dir=self.backups,
+        )
+        backup = manager.create_state_backup()
+        self.assertEqual(backup["status"], "STATE_BACKUP_CREATED")
+        with self.assertRaisesRegex(RuntimeManagerError, "code operations"):
+            manager.audit()
+        with self.assertRaisesRegex(RuntimeManagerError, "code operations"):
+            manager.deploy(run_tests=False)
+
 
 if __name__ == "__main__":
     unittest.main()
