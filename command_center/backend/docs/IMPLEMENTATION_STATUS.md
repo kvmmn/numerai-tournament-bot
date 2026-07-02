@@ -22,11 +22,11 @@
 | Immutable champion bundle | Complete | Frozen members, weights, checksums, data snapshot |
 | Stake reconciliation and execution gates | Complete | Live audit, proposal hash, stale-state check, intent, exact confirmation |
 | Robust promotion candidate | Active | Feature-family champion submitted to `kvmmn_te` in round 1302 |
-| Additional portfolio slots | Awaiting approval | Two distinct zero-stake shadow candidates passed forward-test policy |
+| Additional portfolio slots | Active | Two distinct zero-stake shadows submitted and verified in round 1302 |
 | Guaranteed winning model | Not claimable | Competition outcomes remain uncertain |
 | Live staking | Policy action required | `0.136245 NMR` remains on shadow `kvmmn`; no change authorized |
 
-The submission and monitoring paths are live. The two shadow uploads still need
-round-specific approval, and the pre-existing stake on `kvmmn` needs an operator
+The submission and monitoring paths are live, and round 1302 is complete across
+all three slots. The pre-existing stake on `kvmmn` still needs an operator
 decision. Model research remains continuous by design; “winning” is an outcome
 to pursue, not a state software can honestly certify.

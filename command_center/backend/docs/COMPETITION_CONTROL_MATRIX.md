@@ -15,8 +15,8 @@ deployed runtime has exercised that path against the current account.
 | Platform compatibility | API/account/round/data/mapping/stake-read contracts | Live `PLATFORM_COMPATIBLE`: 7/7 contracts passed | Live verified |
 | Manual/scheduled path parity | Installed runtime resolves one sibling data root | Manual `DATA_DIR`-unset check passed 7/7 | Live verified |
 | Submission deadline | Round `closeTime`, native 11:00 inspection | Native report exit 0 | Live verified |
-| Submission execution | Human challenge, expiring approval, idempotent ledger | `kvmmn_te` round-1302 submission | Live verified |
-| Multi-slot coverage | Portfolio-wide prepare/status with submitted-slot skip | Production plus two shadows | Live verified |
+| Submission execution | Human challenge, expiring approval, idempotent ledger | All three round-1302 submissions verified | Live verified |
+| Multi-slot coverage | Portfolio-wide prepare/status with submitted-slot skip | Round 1302 complete: 3/3 distinct slots | Live verified |
 | Outcome collection | Daily resolved CORR/MMC cursor | Native listener exit 0 | Live verified |
 | Performance incident | Deduplicated durable postmortem artifact | Tested; waits for a new adverse outcome | Implemented |
 | Research review | Weekly active-production robustness evaluation | Native `RESEARCH_PROMOTE` report | Live verified |
@@ -31,7 +31,7 @@ deployed runtime has exercised that path against the current account.
 | Runtime deployment | Test, stage, checksum, code backup, atomic replacement, drift audit | Commit `1260183` deployed with 90/90 checksum parity | Live verified |
 | State recovery | Credential-free manifest, archive checksum, member verification, guarded restore | 95-file staging restore; ledger/model hashes matched | Live verified |
 | Local backup cadence | Daily 19:00 verified archive; seven-copy retention | Native backup exit 0; 19 MB archive | Live verified |
-| Round participation | Per-slot verified coverage and local submission streak | Round-1302 live snapshot | Live verified |
+| Round participation | Per-slot verified coverage and local submission streak | Round 1302: 3/3 verified, streak 1 each | Live verified |
 | Season qualification | Participating rounds, total at-risk, 20-round progress | `0 / 20` qualified in live snapshot | Live verified |
 | Reputation and rank | Model reputation age plus bounded account-rank scan | Account outside scanned top 1,000 | Live verified |
 | Urgent local alerts | Deduplicated deadline/readiness/stake/postmortem notifications | 4 delivered; repeat dispatched 0 | Live verified |
@@ -40,14 +40,13 @@ deployed runtime has exercised that path against the current account.
 ## Current action queue
 
 ```text
-1. Approve or reject the two round-1302 shadow submissions.
-2. Decide whether the pre-existing 0.136245 NMR on shadow slot `kvmmn`
+1. Decide whether the pre-existing 0.136245 NMR on shadow slot `kvmmn`
    should be reduced; no change occurs without a non-zero decrease cap and a
    separate exact approval.
-3. Collect resolved live outcomes for the active production artifact.
-4. Keep stake increases disabled until at least 20 artifact-matched resolved
+2. Collect resolved live outcomes for all three active artifacts.
+3. Keep stake increases disabled until at least 20 artifact-matched resolved
    rounds satisfy the CORR/MMC policy.
-5. Use adverse outcomes to open bounded research experiments, then require a
+4. Use adverse outcomes to open bounded research experiments, then require a
    fresh frozen bundle and promotion approval.
 ```
 

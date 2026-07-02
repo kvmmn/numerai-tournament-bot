@@ -91,8 +91,8 @@ durable report identity.
 
 The `small + serenity` feature-family champion is assigned to `kvmmn_te` and
 has a verified round-1302 submission. Distinct shadow artifacts are active on
-`kvmmn` and `kvmmn_fn`; their round-1302 prediction files are valid but remain
-unsubmitted until separate human approval.
+`kvmmn` and `kvmmn_fn`; both received separate human approval and now have
+verified zero-stake round-1302 submissions. Current coverage is `3 / 3`.
 
 The live stake audit found `0.136245 NMR` on `kvmmn`, which is now a
 stake-ineligible shadow slot. This is reported as a policy violation. No

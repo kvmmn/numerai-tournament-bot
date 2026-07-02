@@ -83,6 +83,17 @@ At the first live run on 2026-07-02:
 
 These are measurements, not predictions about future rank.
 
+After the two separately approved zero-stake shadow uploads on 2026-07-02:
+
+- round `1302`: `3 / 3` model slots verified;
+- missing slots: none;
+- local submission streak: `1` for each slot;
+- deadline state: `DEADLINE_GUARD_COMPLETE`;
+- competition state: `COMPETITION_CURRENT_ROUND_COMPLETE`.
+
+Submission coverage does not change the season qualification measurement:
+round 1302 still has `0 NMR` at risk, and stake decisions remain separate.
+
 ## Alerts
 
 The native alert dispatcher runs after deadline, readiness/competition, and
