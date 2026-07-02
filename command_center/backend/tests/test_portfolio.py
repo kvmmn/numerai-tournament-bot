@@ -123,8 +123,9 @@ class PortfolioGovernanceTests(unittest.TestCase):
                     napi=_FakeApi(),
                 ).prepare_all()
             self.assertTrue(result["ok"])
-            self.assertEqual(result["status"], "PORTFOLIO_ALREADY_SUBMITTED")
+            self.assertEqual(result["status"], "PORTFOLIO_PARTIAL_COVERAGE")
             self.assertEqual(result["unassigned_count"], 1)
+            self.assertFalse(result["coverage_complete"])
             self.assertEqual(result["results"][1]["status"], "UNASSIGNED")
             prepare.assert_not_called()
 

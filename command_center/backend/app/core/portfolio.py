@@ -313,18 +313,22 @@ class PortfolioControlPlane:
                 )
         ok = all(result["ok"] for result in assigned_results)
         assigned_statuses = {result["status"] for result in assigned_results}
-        if assigned_statuses == {"ALREADY_SUBMITTED"}:
-            status = "PORTFOLIO_ALREADY_SUBMITTED"
-        elif ok:
-            status = "PORTFOLIO_AWAITING_HUMAN_APPROVAL"
-        else:
+        unassigned_count = len(models) - len(assigned_model_keys)
+        if not ok:
             status = "PORTFOLIO_PARTIAL_FAILURE"
+        elif unassigned_count:
+            status = "PORTFOLIO_PARTIAL_COVERAGE"
+        elif assigned_statuses == {"ALREADY_SUBMITTED"}:
+            status = "PORTFOLIO_ALREADY_SUBMITTED"
+        else:
+            status = "PORTFOLIO_AWAITING_HUMAN_APPROVAL"
         return {
             "ok": ok,
             "status": status,
             "round_number": round_number,
             "assignment_count": len(portfolio["assignments"]),
             "account_model_count": len(models),
-            "unassigned_count": len(models) - len(assigned_model_keys),
+            "unassigned_count": unassigned_count,
+            "coverage_complete": unassigned_count == 0,
             "results": results,
         }
