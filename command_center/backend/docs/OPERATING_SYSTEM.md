@@ -40,15 +40,17 @@ flowchart LR
 
 | Trigger | What runs | Expected result |
 |---|---|---|
-| Every day, 10:00 | Daily Readiness | Packet or a clear rejection reason |
-| Every day, 11:30 | Deadline Guard | Missing/ready/submitted warning |
+| Every day, 15:00 | Native Daily Readiness | Packet or a clear rejection reason |
+| Every day, 15:30 | Readiness Watchdog | Confirms the native run completed |
+| Every day, 11:00 | Deadline Guard | Missing/ready/submitted warning before close |
 | Every day, 18:00 | Score Listener | New outcomes or “nothing new” |
 | Sunday, 16:00 | Weekly Research Review | Robustness and promotion report |
 | Human approves packet | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |
 | 20+ post-deployment resolved rounds | Stake review becomes eligible | Still requires caps and approval |
 
-Times are local to the Codex automation host.
+Times are local to the automation host. Native readiness uses macOS `launchd`,
+so it does not depend on Codex being open.
 
 ## Fail-closed rules
 

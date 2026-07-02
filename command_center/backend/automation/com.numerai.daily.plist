@@ -25,12 +25,11 @@
     <key>WorkingDirectory</key>
     <string>/Users/kaveh/Documents/Codex/2026-07-01/can-you-find-my-scheduled-tasks/work/numerai-command-center</string>
 
-    <!-- Run daily at 12:00 UTC (adjust for your timezone) -->
-    <!-- Tehran = UTC+3:30, so 12:00 UTC = 15:30 Tehran -->
+    <!-- Run daily at 15:00 local time, after the expected Numerai round open. -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>12</integer>
+        <integer>15</integer>
         <key>Minute</key>
         <integer>0</integer>
     </dict>

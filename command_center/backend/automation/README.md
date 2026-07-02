@@ -47,17 +47,19 @@ python automation/daily_numerai_run.py --mode mcp-auto --strict
 python automation/daily_numerai_run.py --mode mcp-submit --strict
 ```
 
-## Codex automation strategy
-1. Run `agent-prepare` daily.
-2. Review the readiness packet and metrics in the inbox.
+## Automation strategy
+1. Let macOS `launchd` run `agent-prepare` daily.
+2. Let the Codex watchdog verify the readiness packet and report it in the inbox.
 3. Record approval only after a human checks the round, model, artifact hash,
    and prediction validation.
 4. Run `agent-submit` with the approved run id.
 5. Monitor `automation/state/audit.jsonl` and `submission_ledger.json`.
 
 ## Suggested cadence
-- Daily monitoring: every day at 09:00 local time.
-- Daily submit (optional): every day at 11:30 local time after monitoring.
+- Native readiness preparation: every day at 15:00 local time.
+- Codex readiness watchdog: every day at 15:30 local time.
+- Deadline guard: every day at 11:00 local time before the 14:00 close.
+- Submission is never scheduled; it requires a current, explicit approval.
 
 ## Failure handling
 - If `ok=false`, report stays in inbox for triage.
