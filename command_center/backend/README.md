@@ -27,6 +27,7 @@ broadcast submission, automatic promotion, or automatic stake mutation.
 - [Competition control matrix](docs/COMPETITION_CONTROL_MATRIX.md)
 - [Competition and season tracking](docs/COMPETITION_TRACKING.md)
 - [Platform and data-version compatibility](docs/PLATFORM_COMPATIBILITY.md)
+- [Native system health](docs/SYSTEM_HEALTH.md)
 - [Modeling and optimization](docs/MODELING_AND_OPTIMIZATION.md)
 - [Operator runbook](docs/RUNBOOK.md)
 - [Runtime deployment and recovery](docs/RUNTIME_RECOVERY.md)
@@ -57,6 +58,7 @@ Run these from the runtime backend with its virtual environment:
 # Read-only status
 python automation/daily_numerai_run.py --mode portfolio-status --strict
 python automation/daily_numerai_run.py --mode platform-status --strict
+python automation/daily_numerai_run.py --mode system-health --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 
@@ -97,9 +99,10 @@ stake changes.
 | 18:00 daily | Outcome listener and postmortem trigger | No |
 | 18:05 daily | Stake/portfolio policy reconciliation | No |
 | 19:00 daily | Verified state backup with seven-copy retention | Local files only |
+| 19:10 daily | Native job and evidence-freshness supervisor | No |
 | 16:00 Sunday | Production robustness review | No |
 
-Deduplicated native alerts run at 11:05, 15:25, and 18:12 after the
+Deduplicated native alerts run at 11:05, 15:25, 18:12, and 19:15 after the
 corresponding read-only checks.
 
 Codex watchdogs inspect these reports shortly afterward. Submissions,

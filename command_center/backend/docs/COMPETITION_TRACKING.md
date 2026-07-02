@@ -89,6 +89,7 @@ The native alert dispatcher runs after deadline, readiness/competition, and
 outcome/stake checks. It sends deduplicated macOS notifications for:
 
 - broken platform contracts or a new data version requiring review;
+- missing, stale, or failed native job evidence;
 - incomplete current-round coverage;
 - readiness waiting for review;
 - deadline action;

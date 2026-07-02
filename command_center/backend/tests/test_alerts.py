@@ -128,6 +128,36 @@ class AlertDispatcherTests(unittest.TestCase):
             self.assertEqual(result["delivered"][0]["category"], "platform")
             self.assertIn("REMOTE_DATA_VERSION", notifications[0][1])
 
+    def test_unhealthy_native_job_is_actionable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            state = root / "state"
+            self.write(
+                state / "system_health" / "latest.json",
+                {
+                    "status": "SYSTEM_HEALTH_ACTION_REQUIRED",
+                    "generated_at": "2026-07-02T17:10:00+00:00",
+                    "jobs": [
+                        {
+                            "name": "state backup",
+                            "healthy": False,
+                            "issues": ["EVIDENCE_STALE"],
+                        }
+                    ],
+                },
+            )
+            notifications = []
+            result = AlertDispatcher(
+                state,
+                root / "reports",
+                notifier=lambda title, message: notifications.append(
+                    (title, message)
+                ),
+            ).dispatch()
+            self.assertEqual(result["status"], "ALERTS_DELIVERED")
+            self.assertEqual(result["delivered"][0]["category"], "operations")
+            self.assertIn("state backup", notifications[0][1])
+
 
 if __name__ == "__main__":
     unittest.main()

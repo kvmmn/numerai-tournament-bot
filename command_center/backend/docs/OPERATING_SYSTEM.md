@@ -51,6 +51,7 @@ flowchart LR
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
 | Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
 | Every day, 19:00 / 19:15 | Native State Backup / Codex watchdog | Verified credential-free recovery archive |
+| Every day, 19:10 / 19:15 | Native System Health / native alert | Loaded jobs plus fresh successful evidence |
 | Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
 | Human approves packet | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |
@@ -60,7 +61,7 @@ Times are local to the automation host. All execution uses macOS `launchd`, so
 it does not depend on Codex being open; Codex jobs only inspect the results.
 The native jobs execute from `~/Library/Application Support/Numerai` because
 macOS can deny unattended access to `Desktop` and `Documents`.
-Native notifications run at 11:05, 15:25, and 18:12 and deduplicate against
+Native notifications run at 11:05, 15:25, 18:12, and 19:15 and deduplicate against
 durable report identity.
 
 ## Fail-closed rules
@@ -83,6 +84,8 @@ durable report identity.
 - Stake approval binds the complete proposal, and execution rechecks live
   balances, model mapping, current caps, and active portfolio eligibility.
 - A stake execution intent blocks automatic retry after an uncertain API call.
+- A loaded service without fresh successful evidence is unhealthy; the
+  supervisor reports it but does not blindly retry mutations.
 
 ## Current state
 

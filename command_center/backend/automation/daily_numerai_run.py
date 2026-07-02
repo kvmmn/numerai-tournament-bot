@@ -65,6 +65,7 @@ from app.core.staking import StakeControlPlane  # noqa: E402
 from app.core.competition import CompetitionTracker  # noqa: E402
 from app.core.alerts import AlertDispatcher  # noqa: E402
 from app.core.platform_health import PlatformHealthMonitor  # noqa: E402
+from app.core.system_health import SystemHealthMonitor  # noqa: E402
 
 
 REPORTS_DIR = BACKEND_ROOT / "automation" / "reports"
@@ -468,6 +469,8 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return CompetitionTracker().snapshot()
     if mode == "platform-status":
         return PlatformHealthMonitor().snapshot()
+    if mode == "system-health":
+        return SystemHealthMonitor().snapshot()
     if mode == "alert-dispatch":
         return AlertDispatcher(
             Path(settings.CONTROL_PLANE_DIR),
@@ -584,6 +587,7 @@ def parse_args() -> argparse.Namespace:
             "stake-execute",
             "competition-status",
             "platform-status",
+            "system-health",
             "alert-dispatch",
             "score-listen",
             "research-evaluate",

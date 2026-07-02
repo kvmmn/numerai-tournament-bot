@@ -110,6 +110,28 @@ class AlertDispatcher:
 
     def collect(self) -> list[dict[str, Any]]:
         candidates = []
+        health_path = self.state_dir / "system_health" / "latest.json"
+        health = self._load(health_path)
+        if health and health.get("status") == "SYSTEM_HEALTH_ACTION_REQUIRED":
+            unhealthy = [
+                str(row.get("name") or row.get("label"))
+                for row in health.get("jobs", [])
+                if not row.get("healthy")
+            ]
+            candidates.append(
+                self._candidate(
+                    category="operations",
+                    title="Numerai automation health",
+                    message=(
+                        f"Unhealthy jobs: {', '.join(unhealthy)}."
+                        if unhealthy
+                        else "Native automation requires review."
+                    ),
+                    source=health_path,
+                    payload=health,
+                )
+            )
+
         platform_path = self.state_dir / "platform" / "latest.json"
         platform = self._load(platform_path)
         if platform and platform.get("status") in {

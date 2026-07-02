@@ -34,6 +34,7 @@ deployed runtime has exercised that path against the current account.
 | Season qualification | Participating rounds, total at-risk, 20-round progress | `0 / 20` qualified in live snapshot | Live verified |
 | Reputation and rank | Model reputation age plus bounded account-rank scan | Account outside scanned top 1,000 | Live verified |
 | Urgent local alerts | Deduplicated deadline/readiness/stake/postmortem notifications | 4 delivered; repeat dispatched 0 | Live verified |
+| Cross-job health | Loaded service, last exit, report result, and evidence freshness | Daily 19:10 supervisor, alert at 19:15 | Implemented |
 
 ## Current action queue
 
