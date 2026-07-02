@@ -9,7 +9,7 @@
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
 | Native scheduling | Complete | Ten `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
 | Platform/API migration monitoring | Complete | Live 7/7 API, data-version, round, mapping, local schema, and stake-read contracts passed |
-| Cross-job health supervision | Complete | Loaded-service, exit-code, report-success, and evidence-freshness checks |
+| Cross-job health supervision | Complete | Live `SYSTEM_HEALTHY`: 9/9 workers loaded with fresh successful evidence |
 | Runtime deployment and rollback | Complete | Test, stage, checksum, backup, atomic replace, audit |
 | State backup and restore | Complete | Credential-free manifest, archive verification, guarded live restore |
 | Competition/season telemetry | Complete | Coverage, streak, qualification, reputation, bounded account rank |
