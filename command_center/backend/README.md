@@ -49,6 +49,9 @@ This avoids macOS background-access restrictions on `Desktop` and `Documents`.
 The runtime is the source of truth for active portfolio state, readiness
 packets, approvals, submission records, reports, postmortems, and stake state.
 GitHub is the source of truth for reviewed code and documentation.
+Commands launched from this installed backend automatically resolve data from
+the sibling `~/Library/Application Support/Numerai/data` directory; the native
+jobs keep the same location as an explicit environment setting.
 
 ## Governed commands
 

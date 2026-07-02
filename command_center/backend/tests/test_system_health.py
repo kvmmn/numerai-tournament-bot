@@ -135,6 +135,11 @@ class SystemHealthMonitorTests(unittest.TestCase):
                 if row["label"] == "com.numerai.outcomes"
             )
             self.assertIn("LAST_REPORT_FAILED", outcomes["issues"])
+            self.assertTrue(
+                outcomes["evidence"]["path"].endswith(
+                    "20260702_171000_score-listen.json"
+                )
+            )
 
     def test_launchd_parser_reads_top_level_status(self):
         stdout = """

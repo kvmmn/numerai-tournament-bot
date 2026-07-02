@@ -7,6 +7,19 @@ NUMERAI_ROOT = Path(__file__).resolve().parents[4]
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
+def default_data_dir(
+    backend_root: Path,
+    numerai_root: Path,
+) -> Path:
+    """Resolve the checkout or installed-runtime data root."""
+    if backend_root.name == "backend" and backend_root.parent.name == "runtime":
+        return backend_root.parent.parent / "data"
+    return numerai_root
+
+
+DEFAULT_DATA_DIR = default_data_dir(BACKEND_ROOT, NUMERAI_ROOT)
+
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Numerai Command Center"
     API_V1_STR: str = "/api/v1"
@@ -16,7 +29,7 @@ class Settings(BaseSettings):
     NUMERAI_SECRET_KEY: str | None = None
 
     DATA_VERSION: str = "v5.2"
-    DATA_DIR: str = str(NUMERAI_ROOT)
+    DATA_DIR: str = str(DEFAULT_DATA_DIR)
 
     MODEL_NAME: str = "baseline_lgbm"
     FEATURE_SET: str = "small"

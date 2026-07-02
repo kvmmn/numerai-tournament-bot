@@ -176,7 +176,10 @@ class SystemHealthMonitor:
             path for path in spec.directory.glob(spec.pattern) if path.is_file()
         ]
         return (
-            max(matches, key=lambda path: path.stat().st_mtime_ns)
+            max(
+                matches,
+                key=lambda path: (path.stat().st_mtime_ns, path.name),
+            )
             if matches
             else None
         )

@@ -45,6 +45,10 @@ Run it manually from the installed runtime:
 python automation/daily_numerai_run.py --mode platform-status --strict
 ```
 
+The installed runtime resolves its sibling `data` directory automatically, so
+this manual command and the scheduled job inspect the same files without an
+extra shell environment override.
+
 The native `com.numerai.platform` job runs at 10:45 local time. The 11:05 alert
 dispatch includes platform failures and migration-review warnings.
 

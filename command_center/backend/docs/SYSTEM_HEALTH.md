@@ -40,6 +40,8 @@ The supervisor checks:
 The wide daily window tolerates normal scheduling jitter and maintenance while
 still detecting a missed daily cycle before the next one ages out. The weekly
 research window provides the same margin around its Sunday trigger.
+When two files have the same filesystem timestamp, the timestamped filename is
+the deterministic tie-breaker, so the newest named report is always selected.
 
 ## Result states
 
