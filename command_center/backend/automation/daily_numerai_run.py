@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""Daily Numerai automation runner.
+"""Governed Numerai operations runner.
 
-Modes:
-  mcp-preflight       Discover and validate MCP tools
-  mcp-dry-run         Full MCP workflow without submission
-  mcp-submit          Full MCP workflow with submission
-  mcp-auto            Dry-run by default; submit if ENABLE_SUBMIT flag exists
-  numerapi-preflight  Validate NumerAPI credentials and model mapping
-  numerapi-submit     Full local workflow: data -> train -> evaluate -> submit (single model)
-  full-auto           Full suite: train all models -> ensemble -> evaluate -> auto-approve -> submit
+Submission, portfolio promotion, and staking are separate workflows. Every
+mutation requires a current challenge-bound approval; legacy direct-submit
+modes remain disabled.
 """
 from __future__ import annotations
 
@@ -66,11 +61,11 @@ from app.core.model_registry import (  # noqa: E402
     approve_candidate_bundle,
     promote_candidate_bundle,
 )
+from app.core.staking import StakeControlPlane  # noqa: E402
 
 
 REPORTS_DIR = BACKEND_ROOT / "automation" / "reports"
 LOGS_DIR = BACKEND_ROOT / "automation" / "logs"
-ENABLE_SUBMIT_FLAG = BACKEND_ROOT / "automation" / "ENABLE_SUBMIT"
 
 
 def _now() -> datetime:
@@ -162,12 +157,17 @@ def run_mcp_preflight() -> Dict[str, Any]:
 
 
 def run_mcp_cycle(approve_submission: bool) -> Dict[str, Any]:
+    if approve_submission:
+        raise SubmissionGuardError(
+            "MCP submission is disabled. Use agent-prepare, agent-approve, "
+            "then agent-submit."
+        )
     runner = NumeraiMCPWorkflowRunner()
     result = asyncio.run(
         runner.run_cycle(approve_submission=approve_submission)
     )
     result["ok"] = True
-    result["status"] = "mcp_submit_ok" if approve_submission else "mcp_dry_run_ok"
+    result["status"] = "mcp_dry_run_ok"
     result["summary"] = "MCP workflow executed."
     return result
 
@@ -437,6 +437,30 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
             "current_path": str(current_path),
             "summary": "Portfolio assignments activated. No submission or stake change occurred.",
         }
+    if mode == "stake-status":
+        return StakeControlPlane().inspect()
+    if mode == "stake-propose":
+        return StakeControlPlane().propose(
+            target_model=getattr(args, "target_model", None),
+            action=getattr(args, "stake_action", None),
+            amount_nmr=getattr(args, "amount_nmr", None),
+            rationale=(
+                getattr(args, "rationale", None)
+                or "Operator-requested governed stake adjustment."
+            ),
+            deployment_round=getattr(args, "deployment_round", None),
+        )
+    if mode == "stake-approve":
+        return StakeControlPlane().approve(
+            proposal_path=getattr(args, "stake_proposal_path", None),
+            challenge=getattr(args, "challenge", None),
+            actor=getattr(args, "actor", None) or "human-operator",
+        )
+    if mode == "stake-execute":
+        return StakeControlPlane().execute(
+            proposal_path=getattr(args, "stake_proposal_path", None),
+            confirmation=getattr(args, "confirmation", None),
+        )
     if mode == "score-listen":
         return PerformanceListener(
             Path(settings.CONTROL_PLANE_DIR),
@@ -503,7 +527,6 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
     if mode == "mcp-auto":
         result = run_mcp_cycle(approve_submission=False)
         result["auto_submit_enabled"] = False
-        result["submit_flag_path"] = str(ENABLE_SUBMIT_FLAG)
         result["summary"] = (
             "MCP dry-run executed. File-flag submission is permanently disabled; "
             "use the durable human approval workflow."
@@ -543,6 +566,10 @@ def parse_args() -> argparse.Namespace:
             "portfolio-propose",
             "portfolio-approve",
             "portfolio-activate",
+            "stake-status",
+            "stake-propose",
+            "stake-approve",
+            "stake-execute",
             "score-listen",
             "research-evaluate",
             "model-approve",
@@ -569,6 +596,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-id", help="Readiness run id for approval or submission.")
     parser.add_argument("--challenge", help="Human approval challenge from readiness packet.")
     parser.add_argument("--actor", help="Human operator identity recorded in the audit log.")
+    parser.add_argument(
+        "--stake-proposal-path",
+        help="Frozen stake proposal for stake-approve or stake-execute.",
+    )
+    parser.add_argument(
+        "--stake-action",
+        choices=["increase", "decrease"],
+        help="Stake proposal action.",
+    )
+    parser.add_argument("--amount-nmr", type=float, help="Stake change amount in NMR.")
+    parser.add_argument(
+        "--deployment-round",
+        type=int,
+        help="Verified deployment round for a proposed stake increase.",
+    )
+    parser.add_argument("--rationale", help="Reason recorded in a stake proposal.")
+    parser.add_argument(
+        "--confirmation",
+        help="Exact stake execution confirmation emitted by stake-propose.",
+    )
     parser.add_argument(
         "--strict",
         action="store_true",

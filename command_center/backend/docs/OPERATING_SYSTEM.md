@@ -20,6 +20,7 @@ flowchart LR
     J -->|regression| K["Postmortem"]
     J -->|stable evidence| L["Stake recommendation"]
     L --> M{"Separate human approval"}
+    M -->|approve exact proposal| N["Stake Executor<br/>recheck live state"]
 ```
 
 ## The agents
@@ -36,7 +37,8 @@ flowchart LR
 | Verification Listener | Confirms Numerai returned the submission ID | No |
 | Score Listener | Reads resolved results and triggers postmortems | No |
 | Research Agent | Compares challengers and prepares promotion proposals | No |
-| Stake Governor | Recommends a capped amount after live evidence | Proposal only |
+| Stake Governor | Reconciles live stake and recommends a capped amount | Proposal only |
+| Stake Executor | Rechecks and requests one approved stake change | Yes, stake only |
 
 ## Events and triggers
 
@@ -45,6 +47,7 @@ flowchart LR
 | Every day, 11:00 / 11:15 | Native Deadline Guard / Codex watchdog | Missing/ready/submitted warning before close |
 | Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
+| Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
 | Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
 | Human approves packet | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |
@@ -70,11 +73,19 @@ macOS can deny unattended access to `Desktop` and `Documents`.
 - Staking defaults to zero and cannot reuse a previous model's score history.
 - Shadow assignments are permanently stake-ineligible and cannot be activated
   without frozen evidence plus a portfolio approval challenge.
+- Stake approval binds the complete proposal, and execution rechecks live
+  balances, model mapping, current caps, and active portfolio eligibility.
+- A stake execution intent blocks automatic retry after an uncertain API call.
 
 ## Current state
 
 The `small + serenity` feature-family champion is assigned to `kvmmn_te` and
-has a verified round-1302 submission. `kvmmn` and `kvmmn_fn` remain explicitly
-unassigned in the active portfolio. Two diverse zero-stake shadow candidates
-have passed the separate forward-test policy and are frozen in a new portfolio
-proposal. They remain inactive until human approval.
+has a verified round-1302 submission. Distinct shadow artifacts are active on
+`kvmmn` and `kvmmn_fn`; their round-1302 prediction files are valid but remain
+unsubmitted until separate human approval.
+
+The live stake audit found `0.136245 NMR` on `kvmmn`, which is now a
+stake-ineligible shadow slot. This is reported as a policy violation. No
+automatic change was made, increase caps remain zero, and a decrease would
+still require a configured per-change cap plus a separate proposal, challenge,
+and exact confirmation.

@@ -46,15 +46,16 @@ python automation/daily_numerai_run.py --mode portfolio-prepare --strict
 
 ## Local smoke commands
 ```bash
-cd /Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend
+cd "$HOME/Library/Application Support/Numerai/runtime/backend"
 python automation/daily_numerai_run.py --mode mcp-preflight
-python automation/daily_numerai_run.py --mode mcp-dry-run
-python automation/daily_numerai_run.py --mode mcp-auto --strict
-python automation/daily_numerai_run.py --mode mcp-submit --strict
+python automation/daily_numerai_run.py --mode portfolio-status --strict
+python automation/daily_numerai_run.py --mode stake-status --strict
+python -m unittest discover -s tests
 ```
 
 ## Automation strategy
-1. Let macOS `launchd` run deadline, portfolio, outcome, and research jobs.
+1. Let macOS `launchd` run deadline, portfolio, outcome, stake-audit, and
+   research jobs.
 2. Let Codex watchdogs inspect each native report 15–30 minutes later.
 3. Record approval only after a human checks the round, model, artifact hash,
    and prediction validation.
@@ -84,6 +85,7 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 - Codex readiness watchdog: every day at 15:30 local time.
 - Native deadline guard / watchdog: every day at 11:00 / 11:15.
 - Native outcome listener / watchdog: every day at 18:00 / 18:15.
+- Native stake audit / shared watchdog: every day at 18:05 / 18:15.
 - Native research / watchdog: Sunday at 16:00 / 16:15.
 - Submission is never scheduled; it requires a current, explicit approval.
 
@@ -97,3 +99,5 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 - Readiness approvals are bound to round, model UUID, and submission SHA-256.
 - Stake increases are disabled while policy caps are zero.
 - Stake execution requires a separate approval challenge and exact confirmation.
+- Stake execution also rechecks live balances, current caps, model mapping, and
+  portfolio eligibility; an unresolved execution intent prevents retries.

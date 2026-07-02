@@ -1,99 +1,115 @@
-# Numerai Command Center Backend
+# Numerai Competition Control Plane
+
+This repository runs a governed operating system for the Numerai Tournament:
+data refresh, model research, portfolio assignment, one-file/one-model
+submission, outcome monitoring, postmortems, and controlled NMR staking.
+
+## Operating loop
+
+```text
+new round
+  → refresh and validate data once
+  → prepare each approved portfolio slot
+  → human approves each exact prediction file
+  → upload and verify the returned submission ID
+  → collect resolved CORR/MMC outcomes
+  → open a postmortem when live performance regresses
+  → research bounded challengers
+  → separately govern promotion and staking
+```
+
+The default is fail-closed. There is no file-flag approval, multi-model
+broadcast submission, automatic promotion, or automatic stake mutation.
 
 ## Start here
 
 - [Operating system map](docs/OPERATING_SYSTEM.md)
+- [Competition control matrix](docs/COMPETITION_CONTROL_MATRIX.md)
 - [Modeling and optimization](docs/MODELING_AND_OPTIMIZATION.md)
 - [Operator runbook](docs/RUNBOOK.md)
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md)
 
-## What This Runs
-- Syncs fresh Numerai datasets (`train`, `validation`, `live`)
-- Trains challenger model
-- Evaluates validation metrics
-- Waits for approval (or auto-approves if enabled)
-- Submits predictions to configured Numerai model(s)
+## Canonical runtime
 
-## Safety-critical operating model
+Scheduled work runs from:
 
-The daily path is `agent-prepare` → human review → `agent-approve` →
-`agent-submit`. The control plane delegates work to named specialists and writes
-durable readiness, approval, audit, and idempotency artifacts. It targets one
-model slot per packet and verifies the returned submission ID.
+```text
+~/Library/Application Support/Numerai/
+├── data/v5.2/
+└── runtime/
+    ├── .venv/
+    └── backend/
+```
 
-`full-auto`, direct MCP submission, and file-flag approval are disabled. Staking
-is implemented as a separate capped proposal/approval/execution workflow and is
-disabled by default.
+This avoids macOS background-access restrictions on `Desktop` and `Documents`.
+The runtime is the source of truth for active portfolio state, readiness
+packets, approvals, submission records, reports, postmortems, and stake state.
+GitHub is the source of truth for reviewed code and documentation.
 
-The original single-family candidate was rejected. A later `small + serenity`
-feature-family challenger passed development and lockbox checks and is frozen in
-an immutable bundle awaiting explicit model-promotion approval. It is not yet
-the champion and has not been submitted.
+## Governed commands
 
-## Setup
-1. Create env file:
-   - Copy `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/.env.example` to `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/.env`
-2. Install dependencies:
-   - `pip install -r /Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/requirements.txt`
-3. Start API:
-   - `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+Run these from the runtime backend with its virtual environment:
 
-## Required Env
-- `NUMERAI_PUBLIC_ID`
-- `NUMERAI_SECRET_KEY`
+```bash
+# Read-only status
+python automation/daily_numerai_run.py --mode portfolio-status --strict
+python automation/daily_numerai_run.py --mode score-listen --strict
+python automation/daily_numerai_run.py --mode stake-status --strict
 
-## Optional Env
-- `NUMERAI_MODEL_NAMES=KVMMN,KVMMN_FN,KVMMN_TE`
-  - If omitted, submissions are sent to all models returned by your Numerai account.
-- `AUTO_APPROVE_SUBMISSION=false` (auto approval is ignored)
-- `SUBMISSION_TARGET_MODEL=kvmmn_te`
-- `MAX_TOTAL_STAKE_NMR=0` (set a deliberate cap before proposing increases)
+# Submission: three separate steps
+python automation/daily_numerai_run.py --mode portfolio-prepare --strict
+python automation/daily_numerai_run.py \
+  --mode agent-approve --run-id RUN_ID \
+  --challenge CHALLENGE --actor OPERATOR --strict
+python automation/daily_numerai_run.py \
+  --mode agent-submit --run-id RUN_ID --strict
 
-## Preflight
-- Run:
-  - `GET /api/v1/numerai/preflight`
-- This checks:
-  - credentials
-  - current round
-  - model mapping that will be used for submission
+# Stake mutation: separate proposal, approval, and exact confirmation
+python automation/daily_numerai_run.py \
+  --mode stake-propose --target-model MODEL \
+  --stake-action decrease --amount-nmr AMOUNT \
+  --rationale "REASON" --strict
+python automation/daily_numerai_run.py \
+  --mode stake-approve --stake-proposal-path PROPOSAL \
+  --challenge CHALLENGE --actor OPERATOR --strict
+python automation/daily_numerai_run.py \
+  --mode stake-execute --stake-proposal-path PROPOSAL \
+  --confirmation "EXACT CONFIRMATION" --strict
+```
 
-## MCP-First Version (Alternative)
-- This backend also supports an MCP-based flow against Numerai's MCP server.
-- Configure in `.env`:
-  - `NUMERAI_MCP_URL=https://api-tournament.numer.ai/mcp/sse`
-  - `NUMERAI_MCP_AUTH=Token PUBLIC_KEY$PRIVATE_KEY`
+Stake increases additionally require a stake-eligible production assignment,
+verified deployment artifact, at least 20 resolved live rounds, positive CORR
+and MMC evidence, available NMR, and non-zero caps. Submissions never authorize
+stake changes.
 
-### MCP Endpoints
-- Discover tools:
-  - `GET /api/v1/mcp/tools`
-- Full MCP preflight + inferred tool mapping:
-  - `GET /api/v1/mcp/preflight`
-- Call one MCP tool directly:
-  - `POST /api/v1/mcp/call`
-  - body: `{"tool_name":"<name>","arguments":{...}}`
-- Run MCP workflow stages:
-  - `POST /api/v1/mcp/run`
-  - body example:
-    - `{"approve_submission":false,"args":{"train_model":{"model":"lgbm"}}}`
-  - if `approve_submission=true`, submission stage is executed too.
+## Native schedule
 
-## Cycle Endpoints
-- Start cycle:
-  - `POST /api/v1/os/start`
-- Approve candidate:
-  - `POST /api/v1/os/approve` with `{"decision":"APPROVED"}`
-- Retry training:
-  - `POST /api/v1/os/approve` with `{"decision":"RETRY_TRAINING"}`
-- Reject candidate:
-  - `POST /api/v1/os/approve` with `{"decision":"REJECTED"}`
-- Read live state/logs:
-  - `GET /api/v1/os/state`
+| Local time | Native job | Mutation? |
+|---|---|---|
+| 11:00 daily | Deadline and portfolio coverage | No |
+| 15:00 daily | Portfolio readiness preparation | No |
+| 18:00 daily | Outcome listener and postmortem trigger | No |
+| 18:05 daily | Stake/portfolio policy reconciliation | No |
+| 16:00 Sunday | Production robustness review | No |
 
-## Automation Kit
-- Full Codex automation runbook:
-  - `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/README.md`
-- Ready prompts:
-  - `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/prompts/daily_monitor_mcp.md`
-  - `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/prompts/daily_submit_mcp.md`
-- Runner:
-  - `/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/daily_numerai_run.py`
+Codex watchdogs inspect these reports shortly afterward. Submissions,
+promotions, portfolio activation, and stake changes are never scheduled.
+
+## Safety boundaries
+
+- One readiness packet targets exactly one Numerai model UUID.
+- Prediction IDs, ranges, diversity, checksum, and current round are verified.
+- A verified local ledger prevents repeat round/model uploads.
+- Shadow models are permanently stake-ineligible.
+- Stake approval binds the complete proposal file.
+- Stake execution rechecks live balances, model mapping, current caps, and
+  portfolio eligibility.
+- An execution intent is written before a stake API call; an unresolved intent
+  blocks retries and requires manual reconciliation.
+- `full-auto`, `mcp-submit`, and `numerapi-submit` are disabled.
+
+Numerai scoring and staking involve uncertainty and possible NMR burns. The
+system improves process quality; it cannot guarantee profitability or rank.
+See Numerai's official [submissions](https://docs.numer.ai/numerai-tournament/submissions),
+[scoring](https://docs.numer.ai/numerai-tournament/scoring), and
+[staking](https://docs.numer.ai/numerai-tournament/staking) documentation.

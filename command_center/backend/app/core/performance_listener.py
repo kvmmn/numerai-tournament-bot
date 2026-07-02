@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from datetime import datetime, timezone
@@ -84,7 +85,7 @@ class PerformanceListener:
                 "performance": snapshot,
             }
             observations = snapshot["observations"]
-            if len(observations) >= 5:
+            if new_rows and len(observations) >= 5:
                 rolling_corr = sum(row["corr"] for row in observations[-5:]) / 5
                 if rolling_corr < 0:
                     postmortem_reasons.append(
@@ -92,6 +93,40 @@ class PerformanceListener:
                     )
 
         generated_at = datetime.now(timezone.utc)
+        postmortem_path = None
+        postmortem_created = False
+        if postmortem_reasons:
+            incident_identity = {
+                "reasons": sorted(set(postmortem_reasons)),
+                "latest_rounds": {
+                    name: snapshot["latest_round"]
+                    for name, snapshot in snapshots.items()
+                },
+            }
+            incident_id = hashlib.sha256(
+                json.dumps(incident_identity, sort_keys=True).encode()
+            ).hexdigest()[:20]
+            postmortem_path = (
+                self.state_dir / "postmortems" / incident_id / "incident.json"
+            )
+            if not postmortem_path.exists():
+                _atomic_json(
+                    postmortem_path,
+                    {
+                        "incident_id": incident_id,
+                        "status": "OPEN",
+                        "created_at": generated_at.isoformat(),
+                        "reasons": incident_identity["reasons"],
+                        "events": events,
+                        "model_snapshots": snapshots,
+                        "required_actions": [
+                            "review_live_scores",
+                            "pause_stake_increases",
+                            "open_bounded_research_experiment",
+                        ],
+                    },
+                )
+                postmortem_created = True
         report = {
             "ok": True,
             "status": (
@@ -107,6 +142,10 @@ class PerformanceListener:
             "events": events,
             "models": snapshots,
             "postmortem_reasons": sorted(set(postmortem_reasons)),
+            "postmortem_path": (
+                str(postmortem_path) if postmortem_path else None
+            ),
+            "postmortem_created": postmortem_created,
             "read_only": True,
         }
         reports_dir = self.state_dir / "outcomes"

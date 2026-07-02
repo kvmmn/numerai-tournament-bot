@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import Mock
 
 from app.core.staking import (
+    StakeControlPlane,
     StakePolicy,
     StakeSizingPolicy,
     StakingPolicyError,
@@ -25,6 +25,50 @@ POLICY = StakePolicy(
     max_per_model_nmr=40.0,
     max_change_nmr=10.0,
 )
+
+
+class FakeStakeApi:
+    def __init__(
+        self,
+        *,
+        stakes: dict[str, float] | None = None,
+        available_nmr: float = 10.0,
+    ):
+        self.models = {
+            "KVMMN": "model-1",
+            "OTHER": "model-2",
+        }
+        self.stakes = stakes or {"KVMMN": 20.0, "OTHER": 30.0}
+        self.available_nmr = available_nmr
+        self.increase_calls = []
+        self.decrease_calls = []
+        self.performance_rows = StakeSizingTests.rows(25)
+
+    def get_models(self):
+        return dict(self.models)
+
+    def get_account(self):
+        return {
+            "availableNmr": self.available_nmr,
+            "models": [
+                {"id": model_id, "v2Stake": {"status": ""}}
+                for model_id in self.models.values()
+            ],
+        }
+
+    def stake_get(self, model_name):
+        return self.stakes.get(model_name, 0.0)
+
+    def stake_increase(self, amount_nmr, model_id):
+        self.increase_calls.append((amount_nmr, model_id))
+        return {"transaction_id": "tx-increase"}
+
+    def stake_decrease(self, amount_nmr, model_id):
+        self.decrease_calls.append((amount_nmr, model_id))
+        return {"transaction_id": "tx-decrease"}
+
+    def round_model_performances_v2(self, model_id):
+        return list(self.performance_rows)
 
 
 class StakePolicyCapTests(unittest.TestCase):
@@ -177,17 +221,18 @@ class ManualStakeApprovalTests(unittest.TestCase):
     def test_execution_without_manual_approval_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             _, proposal_path = self.create_proposal(temp_dir)
-            napi = Mock()
+            napi = FakeStakeApi()
 
             with self.assertRaisesRegex(StakingPolicyError, "explicit human approval"):
                 execute_approved_stake_change(
                     napi,
                     proposal_path,
                     confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
                     now=NOW + timedelta(minutes=1),
                 )
 
-            napi.stake_increase.assert_not_called()
+            self.assertEqual(napi.increase_calls, [])
 
     def test_wrong_or_expired_approval_challenge_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -217,17 +262,18 @@ class ManualStakeApprovalTests(unittest.TestCase):
                 actor="operator",
                 now=NOW,
             )
-            napi = Mock()
+            napi = FakeStakeApi()
 
             with self.assertRaisesRegex(StakingPolicyError, "exactly match"):
                 execute_approved_stake_change(
                     napi,
                     proposal_path,
                     confirmation="increase 5 NMR",
+                    policy=POLICY,
                     now=NOW + timedelta(minutes=1),
                 )
 
-            napi.stake_increase.assert_not_called()
+            self.assertEqual(napi.increase_calls, [])
 
     def test_approved_increase_calls_api_once_and_records_execution(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -238,18 +284,18 @@ class ManualStakeApprovalTests(unittest.TestCase):
                 actor="operator",
                 now=NOW,
             )
-            napi = Mock()
-            napi.stake_increase.return_value = {"transaction_id": "tx-1"}
+            napi = FakeStakeApi()
 
             result = execute_approved_stake_change(
                 napi,
                 proposal_path,
                 confirmation="INCREASE 5.0 NMR ON KVMMN",
+                policy=POLICY,
                 now=NOW + timedelta(minutes=1),
             )
 
-            self.assertEqual(result, {"transaction_id": "tx-1"})
-            napi.stake_increase.assert_called_once_with(5.0, "model-1")
+            self.assertEqual(result, {"transaction_id": "tx-increase"})
+            self.assertEqual(napi.increase_calls, [(5.0, "model-1")])
             execution = json.loads(
                 proposal_path.with_name("execution.json").read_text()
             )
@@ -268,17 +314,18 @@ class ManualStakeApprovalTests(unittest.TestCase):
             approval = json.loads(approval_path.read_text())
             approval["amount_nmr"] = 7.0
             approval_path.write_text(json.dumps(approval))
-            napi = Mock()
+            napi = FakeStakeApi()
 
             with self.assertRaisesRegex(StakingPolicyError, "amount_nmr"):
                 execute_approved_stake_change(
                     napi,
                     proposal_path,
                     confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
                     now=NOW + timedelta(minutes=1),
                 )
 
-            napi.stake_increase.assert_not_called()
+            self.assertEqual(napi.increase_calls, [])
 
     def test_expired_approval_cannot_execute(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -289,17 +336,243 @@ class ManualStakeApprovalTests(unittest.TestCase):
                 actor="operator",
                 now=NOW,
             )
-            napi = Mock()
+            napi = FakeStakeApi()
 
             with self.assertRaisesRegex(StakingPolicyError, "expired"):
                 execute_approved_stake_change(
                     napi,
                     proposal_path,
                     confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
                     now=NOW + timedelta(minutes=6),
                 )
 
-            napi.stake_increase.assert_not_called()
+    def test_changed_proposal_is_rejected_after_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proposal, proposal_path = self.create_proposal(temp_dir)
+            approve_stake_proposal(
+                proposal_path,
+                challenge=proposal.approval_challenge,
+                actor="operator",
+                now=NOW,
+            )
+            payload = json.loads(proposal_path.read_text())
+            payload["rationale"] = "tampered"
+            proposal_path.write_text(json.dumps(payload))
+            napi = FakeStakeApi()
+
+            with self.assertRaisesRegex(StakingPolicyError, "changed after approval"):
+                execute_approved_stake_change(
+                    napi,
+                    proposal_path,
+                    confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
+                    now=NOW + timedelta(minutes=1),
+                )
+            self.assertEqual(napi.increase_calls, [])
+
+    def test_stale_live_balance_and_duplicate_execution_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proposal, proposal_path = self.create_proposal(temp_dir)
+            approve_stake_proposal(
+                proposal_path,
+                challenge=proposal.approval_challenge,
+                actor="operator",
+                now=NOW,
+            )
+            stale = FakeStakeApi(stakes={"KVMMN": 21.0, "OTHER": 30.0})
+            with self.assertRaisesRegex(StakingPolicyError, "Live stake changed"):
+                execute_approved_stake_change(
+                    stale,
+                    proposal_path,
+                    confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
+                    now=NOW + timedelta(minutes=1),
+                )
+
+            napi = FakeStakeApi()
+            execute_approved_stake_change(
+                napi,
+                proposal_path,
+                confirmation="INCREASE 5.0 NMR ON KVMMN",
+                policy=POLICY,
+                now=NOW + timedelta(minutes=1),
+            )
+            with self.assertRaisesRegex(StakingPolicyError, "already been executed"):
+                execute_approved_stake_change(
+                    napi,
+                    proposal_path,
+                    confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
+                    now=NOW + timedelta(minutes=2),
+                )
+            self.assertEqual(napi.increase_calls, [(5.0, "model-1")])
+
+    def test_uncertain_api_failure_writes_intent_and_blocks_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            proposal, proposal_path = self.create_proposal(temp_dir)
+            approve_stake_proposal(
+                proposal_path,
+                challenge=proposal.approval_challenge,
+                actor="operator",
+                now=NOW,
+            )
+            napi = FakeStakeApi()
+
+            def fail_after_request(amount_nmr, model_id):
+                napi.increase_calls.append((amount_nmr, model_id))
+                raise RuntimeError("connection lost")
+
+            napi.stake_increase = fail_after_request
+            with self.assertRaisesRegex(RuntimeError, "connection lost"):
+                execute_approved_stake_change(
+                    napi,
+                    proposal_path,
+                    confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
+                    now=NOW + timedelta(minutes=1),
+                )
+            self.assertTrue(
+                proposal_path.with_name("execution_intent.json").exists()
+            )
+            self.assertTrue(
+                proposal_path.with_name("execution_error.json").exists()
+            )
+
+            with self.assertRaisesRegex(StakingPolicyError, "Unresolved"):
+                execute_approved_stake_change(
+                    napi,
+                    proposal_path,
+                    confirmation="INCREASE 5.0 NMR ON KVMMN",
+                    policy=POLICY,
+                    now=NOW + timedelta(minutes=2),
+                )
+            self.assertEqual(napi.increase_calls, [(5.0, "model-1")])
+
+
+class StakeControlPlaneTests(unittest.TestCase):
+    @staticmethod
+    def write_portfolio(
+        registry: Path,
+        *,
+        deployment_tier: str,
+        stake_eligible: bool,
+        artifact_sha256: str = "artifact-sha",
+    ) -> None:
+        path = registry / "portfolio" / "current.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "assignments": [
+                        {
+                            "model_name": "KVMMN",
+                            "deployment_tier": deployment_tier,
+                            "stake_eligible": stake_eligible,
+                            "artifact": {
+                                "path": "/tmp/model.pkl",
+                                "sha256": artifact_sha256,
+                            },
+                        }
+                    ]
+                }
+            )
+        )
+
+    def test_live_audit_flags_stake_on_shadow_assignment(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.write_portfolio(
+                root / "registry",
+                deployment_tier="shadow",
+                stake_eligible=False,
+            )
+            napi = FakeStakeApi(stakes={"KVMMN": 0.136, "OTHER": 0.0})
+            result = StakeControlPlane(
+                root / "state",
+                root / "registry",
+                napi=napi,
+                policy=StakePolicy(0, 0, 0),
+            ).inspect()
+            self.assertTrue(result["read_only"])
+            self.assertEqual(result["status"], "STAKE_POLICY_ACTION_REQUIRED")
+            codes = {row["code"] for row in result["violations"]}
+            self.assertIn("SHADOW_MODEL_HAS_STAKE", codes)
+            self.assertIn("STAKE_INELIGIBLE_MODEL_HAS_STAKE", codes)
+
+    def test_decrease_can_be_proposed_with_increase_caps_disabled(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.write_portfolio(
+                root / "registry",
+                deployment_tier="shadow",
+                stake_eligible=False,
+            )
+            result = StakeControlPlane(
+                root / "state",
+                root / "registry",
+                napi=FakeStakeApi(stakes={"KVMMN": 0.136, "OTHER": 0.0}),
+                policy=StakePolicy(0, 0, 0.1),
+            ).propose(
+                target_model="kvmmn",
+                action="decrease",
+                amount_nmr=0.05,
+                rationale="Reduce stake on a shadow assignment.",
+            )
+            self.assertEqual(result["status"], "STAKE_AWAITING_HUMAN_APPROVAL")
+            self.assertAlmostEqual(result["projected_model_stake_nmr"], 0.086)
+
+    def test_increase_requires_verified_active_artifact_and_live_evidence(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            registry = root / "registry"
+            state = root / "state"
+            self.write_portfolio(
+                registry,
+                deployment_tier="production",
+                stake_eligible=True,
+            )
+            ledger = state / "submission_ledger.json"
+            ledger.parent.mkdir(parents=True)
+            ledger.write_text(
+                json.dumps(
+                    {
+                        "submissions": {
+                            "100:model-1": {
+                                "round_number": 100,
+                                "model_id": "model-1",
+                                "run_id": "run-1",
+                                "submission_id": "submission-1",
+                                "verified": True,
+                            }
+                        }
+                    }
+                )
+            )
+            packet = state / "runs" / "run-1" / "readiness.json"
+            packet.parent.mkdir(parents=True)
+            packet.write_text(
+                json.dumps(
+                    {
+                        "validation": {
+                            "model_artifact_sha256": "artifact-sha",
+                        }
+                    }
+                )
+            )
+            result = StakeControlPlane(
+                state,
+                registry,
+                napi=FakeStakeApi(stakes={"KVMMN": 0.0, "OTHER": 0.0}),
+                policy=StakePolicy(100, 40, 10),
+            ).propose(
+                target_model="kvmmn",
+                action="increase",
+                amount_nmr=5.0,
+                rationale="Initial allocation after resolved live evidence.",
+                deployment_round=100,
+            )
+            self.assertEqual(result["status"], "STAKE_AWAITING_HUMAN_APPROVAL")
 
 
 if __name__ == "__main__":

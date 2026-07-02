@@ -70,6 +70,11 @@ class NumeraiMCPWorkflowRunner:
         approve_submission: bool,
         args: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
+        if approve_submission:
+            raise NumeraiMCPError(
+                "MCP submission is disabled. Use the challenge-bound local "
+                "agent-prepare, agent-approve, and agent-submit workflow."
+            )
         args = args or {}
         preflight = await self.preflight()
         if not preflight["ok"]:
@@ -99,15 +104,12 @@ class NumeraiMCPWorkflowRunner:
         await run_stage("train_model", selected.get("train_model"))
         await run_stage("evaluate_model", selected.get("evaluate_model"))
 
-        if approve_submission:
-            await run_stage("submit_predictions", selected.get("submit_predictions"))
-        else:
-            events.append("skip:submit_predictions:approval-required")
+        events.append("skip:submit_predictions:challenge-bound-local-workflow")
 
         return {
             "ok": True,
             "checked_at": datetime.now(timezone.utc).isoformat(),
-            "approved": approve_submission,
+            "approved": False,
             "events": events,
             "outputs": outputs,
             "selected_tools": selected,

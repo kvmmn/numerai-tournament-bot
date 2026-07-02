@@ -7,18 +7,19 @@
 | Human-gated single-model submission | Complete | Round/model/file/evaluation approval identity |
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
-| Native scheduling | Complete | Four `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
+| Native scheduling | Complete | Five `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
 | Preparation efficiency | Complete | One live refresh per portfolio cycle and immutable robustness cache |
-| Outcome and postmortem trigger | Complete | Cursor-based read-only listener |
+| Outcome and postmortem trigger | Complete | Cursor-based listener plus deduplicated durable incident |
 | Temporal validation design | Complete | Ordered walk-forward folds, embargo, lockbox |
 | Robustness review | Complete | Overall/recent/regime/bootstrap packet |
 | Immutable champion bundle | Complete | Frozen members, weights, checksums, data snapshot |
-| Stake sizing and execution gates | Complete | Live-evidence policy plus dual confirmation |
+| Stake reconciliation and execution gates | Complete | Live audit, proposal hash, stale-state check, intent, exact confirmation |
 | Robust promotion candidate | Active | Feature-family champion submitted to `kvmmn_te` in round 1302 |
 | Additional portfolio slots | Awaiting approval | Two distinct zero-stake shadow candidates passed forward-test policy |
 | Guaranteed winning model | Not claimable | Competition outcomes remain uncertain |
-| Live staking | Not authorized | Caps are zero; insufficient current-model live evidence |
+| Live staking | Policy action required | `0.136245 NMR` remains on shadow `kvmmn`; no change authorized |
 
-The system is operationally complete enough to prevent known bad actions. Model
-research remains continuous by design; “winning” is an outcome to pursue, not a
-state software can honestly certify.
+The submission and monitoring paths are live. The two shadow uploads still need
+round-specific approval, and the pre-existing stake on `kvmmn` needs an operator
+decision. Model research remains continuous by design; “winning” is an outcome
+to pursue, not a state software can honestly certify.

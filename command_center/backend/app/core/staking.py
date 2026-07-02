@@ -10,6 +10,10 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from .config import settings
+from .numerai_ops import build_napi
+from .submission_guard import resolve_single_model
+
 
 class StakingPolicyError(RuntimeError):
     pass
@@ -47,6 +51,7 @@ class StakeProposal:
     created_at: str
     expires_at: str
     approval_challenge: str
+    evidence: dict[str, Any] | None = None
     status: str = "AWAITING_HUMAN_APPROVAL"
 
 
@@ -171,8 +176,18 @@ def recommend_stake_increase(
 def _atomic_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    temporary.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, default=str) + "\n"
+    )
     os.replace(temporary, path)
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def create_stake_proposal(
@@ -186,6 +201,7 @@ def create_stake_proposal(
     current_total_stake_nmr: float,
     rationale: str,
     policy: StakePolicy,
+    evidence: dict[str, Any] | None = None,
     ttl_minutes: int = 60,
     now: datetime | None = None,
 ) -> tuple[StakeProposal, Path]:
@@ -201,10 +217,17 @@ def create_stake_proposal(
     projected_total = current_total_stake_nmr + sign * amount_nmr
     if projected_model < 0 or projected_total < 0:
         raise StakingPolicyError("Stake decrease exceeds the current stake.")
-    if projected_model > policy.max_per_model_nmr:
-        raise StakingPolicyError("Projected model stake exceeds the configured model cap.")
-    if projected_total > policy.max_total_nmr:
-        raise StakingPolicyError("Projected total stake exceeds the configured portfolio cap.")
+    if action == "increase":
+        if policy.max_total_nmr <= 0 or policy.max_per_model_nmr <= 0:
+            raise StakingPolicyError("Stake increases are disabled by configured caps.")
+        if projected_model > policy.max_per_model_nmr:
+            raise StakingPolicyError(
+                "Projected model stake exceeds the configured model cap."
+            )
+        if projected_total > policy.max_total_nmr:
+            raise StakingPolicyError(
+                "Projected total stake exceeds the configured portfolio cap."
+            )
     identity = (
         f"{model_id}:{action}:{amount_nmr:.12f}:{current_model_stake_nmr:.12f}:"
         f"{current_total_stake_nmr:.12f}:{now.isoformat()}"
@@ -225,6 +248,7 @@ def create_stake_proposal(
         created_at=now.isoformat(),
         expires_at=(now + timedelta(minutes=ttl_minutes)).isoformat(),
         approval_challenge=challenge,
+        evidence=evidence,
     )
     path = Path(state_dir) / "staking" / proposal_id / "proposal.json"
     _atomic_json(path, asdict(proposal))
@@ -245,11 +269,13 @@ def approve_stake_proposal(
         raise StakingPolicyError("Stake approval challenge does not match.")
     if now > datetime.fromisoformat(proposal["expires_at"]):
         raise StakingPolicyError("Stake proposal has expired.")
+    proposal_sha256 = _sha256_file(proposal_path)
     approval = {
         "proposal_id": proposal["proposal_id"],
         "model_id": proposal["model_id"],
         "action": proposal["action"],
         "amount_nmr": proposal["amount_nmr"],
+        "proposal_sha256": proposal_sha256,
         "actor": actor,
         "approved_at": now.isoformat(),
         "expires_at": proposal["expires_at"],
@@ -264,18 +290,34 @@ def execute_approved_stake_change(
     proposal_path: str | Path,
     *,
     confirmation: str,
+    policy: StakePolicy | None = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     proposal_path = Path(proposal_path)
     proposal = json.loads(proposal_path.read_text())
+    execution_path = proposal_path.with_name("execution.json")
+    intent_path = proposal_path.with_name("execution_intent.json")
+    if execution_path.exists():
+        raise StakingPolicyError("Stake proposal has already been executed.")
+    if intent_path.exists():
+        raise StakingPolicyError(
+            "Unresolved stake execution intent exists; reconcile it before retrying."
+        )
     approval_path = proposal_path.with_name("approval.json")
     if not approval_path.exists():
         raise StakingPolicyError("Stake execution requires explicit human approval.")
     approval = json.loads(approval_path.read_text())
-    for key in ("proposal_id", "model_id", "action", "amount_nmr"):
+    for key in (
+        "proposal_id",
+        "model_id",
+        "action",
+        "amount_nmr",
+    ):
         if approval.get(key) != proposal.get(key):
             raise StakingPolicyError(f"Stake approval mismatch: {key}.")
+    if approval.get("proposal_sha256") != _sha256_file(proposal_path):
+        raise StakingPolicyError("Stake proposal changed after approval.")
     if now > datetime.fromisoformat(approval["expires_at"]):
         raise StakingPolicyError("Stake approval has expired.")
     expected_confirmation = (
@@ -286,16 +328,377 @@ def execute_approved_stake_change(
         raise StakingPolicyError(
             f"Confirmation must exactly match: {expected_confirmation}"
         )
+
+    model_name, model_id = resolve_single_model(
+        napi.get_models(),
+        proposal["model_name"],
+    )
+    if model_id != proposal["model_id"]:
+        raise StakingPolicyError("Numerai model mapping changed after stake approval.")
+    current_stakes = {
+        name: float(napi.stake_get(name) or 0.0)
+        for name in napi.get_models()
+    }
+    current_model_stake = current_stakes[model_name]
+    current_total_stake = sum(current_stakes.values())
+    tolerance = 1e-9
+    if (
+        abs(current_model_stake - float(proposal["current_model_stake_nmr"]))
+        > tolerance
+        or abs(current_total_stake - float(proposal["current_total_stake_nmr"]))
+        > tolerance
+    ):
+        raise StakingPolicyError(
+            "Live stake changed after proposal; create and approve a fresh proposal."
+        )
+
+    if policy is None:
+        policy_data = (proposal.get("evidence") or {}).get("policy")
+        if not policy_data:
+            raise StakingPolicyError(
+                "Stake execution requires the current configured policy."
+            )
+        policy = StakePolicy(
+            max_total_nmr=float(policy_data["max_total_nmr"]),
+            max_per_model_nmr=float(policy_data["max_per_model_nmr"]),
+            max_change_nmr=float(policy_data["max_change_nmr"]),
+        )
+    amount_nmr = float(proposal["amount_nmr"])
+    if policy.max_change_nmr <= 0 or amount_nmr > policy.max_change_nmr:
+        raise StakingPolicyError("Stake amount exceeds the current per-change cap.")
     if proposal["action"] == "increase":
-        result = napi.stake_increase(proposal["amount_nmr"], proposal["model_id"])
-    else:
-        result = napi.stake_decrease(proposal["amount_nmr"], proposal["model_id"])
+        projected_model = current_model_stake + amount_nmr
+        projected_total = current_total_stake + amount_nmr
+        if (
+            policy.max_total_nmr <= 0
+            or policy.max_per_model_nmr <= 0
+            or projected_model > policy.max_per_model_nmr
+            or projected_total > policy.max_total_nmr
+        ):
+            raise StakingPolicyError("Current stake caps no longer allow this increase.")
+        available_nmr = float(napi.get_account().get("availableNmr") or 0.0)
+        if available_nmr + tolerance < amount_nmr:
+            raise StakingPolicyError("Available NMR is below the approved increase.")
+
     _atomic_json(
-        proposal_path.with_name("execution.json"),
+        intent_path,
         {
             "proposal_id": proposal["proposal_id"],
-            "executed_at": now.isoformat(),
+            "requested_at": now.isoformat(),
+            "model_id": proposal["model_id"],
+            "action": proposal["action"],
+            "amount_nmr": amount_nmr,
+        },
+    )
+    try:
+        if proposal["action"] == "increase":
+            result = napi.stake_increase(amount_nmr, proposal["model_id"])
+        else:
+            result = napi.stake_decrease(amount_nmr, proposal["model_id"])
+    except Exception as exc:
+        _atomic_json(
+            proposal_path.with_name("execution_error.json"),
+            {
+                "proposal_id": proposal["proposal_id"],
+                "failed_at": datetime.now(timezone.utc).isoformat(),
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "requires_manual_reconciliation": True,
+            },
+        )
+        raise
+    _atomic_json(
+        execution_path,
+        {
+            "proposal_id": proposal["proposal_id"],
+            "requested_at": now.isoformat(),
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
             "result": result,
         },
     )
     return result
+
+
+class StakeControlPlane:
+    """Live stake reconciliation plus separately governed stake mutations."""
+
+    def __init__(
+        self,
+        state_dir: str | Path | None = None,
+        registry_dir: str | Path | None = None,
+        *,
+        napi: Any | None = None,
+        policy: StakePolicy | None = None,
+    ):
+        self.state_dir = Path(state_dir or settings.CONTROL_PLANE_DIR)
+        self.registry_dir = Path(registry_dir or settings.MODEL_REGISTRY_DIR)
+        self.napi = napi
+        self.policy = policy or StakePolicy(
+            max_total_nmr=float(settings.MAX_TOTAL_STAKE_NMR),
+            max_per_model_nmr=float(settings.MAX_MODEL_STAKE_NMR),
+            max_change_nmr=float(settings.MAX_STAKE_CHANGE_NMR),
+        )
+
+    def _api(self):
+        if self.napi is None:
+            self.napi = build_napi()
+        return self.napi
+
+    def _assignments(self) -> dict[str, dict[str, Any]]:
+        current_path = self.registry_dir / "portfolio" / "current.json"
+        if not current_path.exists():
+            return {}
+        current = json.loads(current_path.read_text())
+        return {
+            assignment["model_name"].casefold(): assignment
+            for assignment in current.get("assignments", [])
+        }
+
+    def inspect(self) -> dict[str, Any]:
+        napi = self._api()
+        models = napi.get_models()
+        account = napi.get_account()
+        account_models = {
+            str(row.get("id")): row for row in account.get("models", [])
+        }
+        assignments = self._assignments()
+        slots = []
+        violations = []
+        total_stake_nmr = 0.0
+        for model_name, model_id in models.items():
+            stake_nmr = float(napi.stake_get(model_name) or 0.0)
+            total_stake_nmr += stake_nmr
+            assignment = assignments.get(model_name.casefold())
+            deployment_tier = (
+                assignment.get("deployment_tier") if assignment else None
+            )
+            stake_eligible = bool(
+                assignment and assignment.get("stake_eligible", False)
+            )
+            slot_violations = []
+            if stake_nmr > 1e-12 and assignment is None:
+                slot_violations.append("UNASSIGNED_MODEL_HAS_STAKE")
+            if stake_nmr > 1e-12 and deployment_tier == "shadow":
+                slot_violations.append("SHADOW_MODEL_HAS_STAKE")
+            if stake_nmr > 1e-12 and assignment and not stake_eligible:
+                slot_violations.append("STAKE_INELIGIBLE_MODEL_HAS_STAKE")
+            for code in slot_violations:
+                violations.append(
+                    {
+                        "code": code,
+                        "model_name": model_name,
+                        "model_id": model_id,
+                        "stake_nmr": stake_nmr,
+                    }
+                )
+            stake_state = account_models.get(model_id, {}).get("v2Stake") or {}
+            slots.append(
+                {
+                    "model_name": model_name,
+                    "model_id": model_id,
+                    "deployment_tier": deployment_tier,
+                    "stake_eligible": stake_eligible,
+                    "stake_nmr": stake_nmr,
+                    "pending_stake_status": stake_state.get("status"),
+                    "violations": slot_violations,
+                }
+            )
+        caps = asdict(self.policy)
+        caps_enabled = all(value > 0 for value in caps.values())
+        if violations:
+            status = "STAKE_POLICY_ACTION_REQUIRED"
+        elif not caps_enabled:
+            status = "STAKE_INCREASES_DISABLED"
+        else:
+            status = "STAKE_POLICY_OK"
+        return {
+            "ok": True,
+            "status": status,
+            "read_only": True,
+            "available_nmr": float(account.get("availableNmr") or 0.0),
+            "total_stake_nmr": total_stake_nmr,
+            "caps": caps,
+            "caps_enabled": caps_enabled,
+            "slots": slots,
+            "violations": violations,
+        }
+
+    def _verified_deployment(
+        self,
+        *,
+        model_id: str,
+        deployment_round: int,
+        artifact_sha256: str,
+    ) -> dict[str, Any]:
+        ledger_path = self.state_dir / "submission_ledger.json"
+        if not ledger_path.exists():
+            raise StakingPolicyError("Verified submission ledger is missing.")
+        ledger = json.loads(ledger_path.read_text()).get("submissions", {})
+        record = ledger.get(f"{int(deployment_round)}:{model_id}")
+        if not record or not record.get("verified"):
+            raise StakingPolicyError(
+                "Deployment round has no verified local submission record."
+            )
+        packet_path = self.state_dir / "runs" / record["run_id"] / "readiness.json"
+        if not packet_path.exists():
+            raise StakingPolicyError("Deployment readiness packet is missing.")
+        packet = json.loads(packet_path.read_text())
+        if packet.get("validation", {}).get("model_artifact_sha256") != artifact_sha256:
+            raise StakingPolicyError(
+                "Deployment round was not submitted with the active artifact."
+            )
+        return {
+            "deployment_round": int(deployment_round),
+            "submission_id": record.get("submission_id"),
+            "run_id": record.get("run_id"),
+            "artifact_sha256": artifact_sha256,
+        }
+
+    def propose(
+        self,
+        *,
+        target_model: str,
+        action: str,
+        amount_nmr: float,
+        rationale: str,
+        deployment_round: int | None = None,
+    ) -> dict[str, Any]:
+        napi = self._api()
+        model_name, model_id = resolve_single_model(
+            napi.get_models(),
+            target_model,
+        )
+        snapshot = self.inspect()
+        slot = next(row for row in snapshot["slots"] if row["model_id"] == model_id)
+        assignment = self._assignments().get(model_name.casefold())
+        action = action.casefold()
+        recommendation = None
+        deployment = None
+        if action == "increase":
+            if (
+                assignment is None
+                or assignment.get("deployment_tier") != "production"
+                or not assignment.get("stake_eligible", False)
+            ):
+                raise StakingPolicyError(
+                    "Stake increases require an active stake-eligible production assignment."
+                )
+            if deployment_round is None:
+                raise StakingPolicyError(
+                    "Stake increase requires the active artifact deployment round."
+                )
+            deployment = self._verified_deployment(
+                model_id=model_id,
+                deployment_round=deployment_round,
+                artifact_sha256=assignment["artifact"]["sha256"],
+            )
+            recommendation = recommend_stake_increase(
+                napi.round_model_performances_v2(model_id),
+                current_model_stake_nmr=slot["stake_nmr"],
+                current_total_stake_nmr=snapshot["total_stake_nmr"],
+                caps=self.policy,
+                deployment_round=deployment_round,
+            )
+            if not recommendation["eligible"]:
+                raise StakingPolicyError(
+                    "Live evidence does not permit a stake increase: "
+                    + ", ".join(recommendation["failures"])
+                )
+            if float(amount_nmr) > float(
+                recommendation["recommended_increase_nmr"]
+            ) + 1e-12:
+                raise StakingPolicyError(
+                    "Requested increase exceeds the evidence-based recommendation."
+                )
+            if snapshot["available_nmr"] + 1e-12 < float(amount_nmr):
+                raise StakingPolicyError("Available NMR is below the requested increase.")
+        elif action != "decrease":
+            raise StakingPolicyError("Stake action must be increase or decrease.")
+
+        evidence = {
+            "policy": asdict(self.policy),
+            "portfolio_assignment": assignment,
+            "deployment": deployment,
+            "recommendation": recommendation,
+            "live_snapshot": {
+                "available_nmr": snapshot["available_nmr"],
+                "total_stake_nmr": snapshot["total_stake_nmr"],
+                "slot": slot,
+            },
+        }
+        proposal, proposal_path = create_stake_proposal(
+            self.state_dir,
+            model_name=model_name,
+            model_id=model_id,
+            action=action,
+            amount_nmr=amount_nmr,
+            current_model_stake_nmr=slot["stake_nmr"],
+            current_total_stake_nmr=snapshot["total_stake_nmr"],
+            rationale=rationale,
+            policy=self.policy,
+            evidence=evidence,
+        )
+        return {
+            "ok": True,
+            "status": "STAKE_AWAITING_HUMAN_APPROVAL",
+            "proposal_id": proposal.proposal_id,
+            "proposal_path": str(proposal_path),
+            "approval_challenge": proposal.approval_challenge,
+            "expires_at": proposal.expires_at,
+            "required_confirmation": (
+                f"{proposal.action.upper()} {proposal.amount_nmr} NMR "
+                f"ON {proposal.model_name}"
+            ),
+            "projected_model_stake_nmr": proposal.projected_model_stake_nmr,
+            "projected_total_stake_nmr": proposal.projected_total_stake_nmr,
+        }
+
+    def approve(
+        self,
+        *,
+        proposal_path: str | Path,
+        challenge: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        approval_path = approve_stake_proposal(
+            proposal_path,
+            challenge=challenge,
+            actor=actor,
+        )
+        return {
+            "ok": True,
+            "status": "STAKE_APPROVED",
+            "approval_path": str(approval_path),
+        }
+
+    def execute(
+        self,
+        *,
+        proposal_path: str | Path,
+        confirmation: str,
+    ) -> dict[str, Any]:
+        proposal = json.loads(Path(proposal_path).read_text())
+        if proposal["action"] == "increase":
+            assignment = self._assignments().get(
+                str(proposal["model_name"]).casefold()
+            )
+            if (
+                assignment is None
+                or assignment.get("deployment_tier") != "production"
+                or not assignment.get("stake_eligible", False)
+            ):
+                raise StakingPolicyError(
+                    "Active portfolio no longer permits this stake increase."
+                )
+        result = execute_approved_stake_change(
+            self._api(),
+            proposal_path,
+            confirmation=confirmation,
+            policy=self.policy,
+        )
+        return {
+            "ok": True,
+            "status": "STAKE_CHANGE_REQUESTED",
+            "proposal_id": proposal["proposal_id"],
+            "result": result,
+        }

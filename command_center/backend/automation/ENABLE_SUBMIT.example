@@ -1,2 +1,5 @@
-# Create a file named `ENABLE_SUBMIT` in this same directory to allow mcp-auto submission.
-# If the file is absent, mcp-auto runs as dry-run and skips submission.
+# Deprecated compatibility marker.
+#
+# Creating automation/ENABLE_SUBMIT does not authorize or trigger a submission.
+# Use agent-prepare, inspect the readiness packet, explicitly approve its
+# run/challenge, and then run agent-submit.

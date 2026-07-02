@@ -13,6 +13,7 @@ This script:
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -62,6 +63,7 @@ def _save_env(config: dict) -> Path:
             updated_lines.append(f"{key}={value}")
 
     env_path.write_text("\n".join(updated_lines) + "\n")
+    os.chmod(env_path, 0o600)
     return env_path
 
 
@@ -157,7 +159,7 @@ def main():
     print("[4/4] Configuration Defaults")
     print("-" * 40)
 
-    config["AUTO_APPROVE_SUBMISSION"] = "true"
+    config["AUTO_APPROVE_SUBMISSION"] = "false"
     config["USE_ENSEMBLE"] = "true"
     config["DATA_VERSION"] = existing.get("DATA_VERSION", "v5.2")
     config["FEATURE_SET"] = existing.get("FEATURE_SET", "small")
@@ -165,8 +167,11 @@ def main():
     config["MIN_VALIDATION_CORR"] = existing.get("MIN_VALIDATION_CORR", "0.01")
     config["MIN_SHARPE_RATIO"] = existing.get("MIN_SHARPE_RATIO", "0.3")
     config["MAX_FEATURE_EXPOSURE"] = existing.get("MAX_FEATURE_EXPOSURE", "0.1")
+    config["MAX_TOTAL_STAKE_NMR"] = existing.get("MAX_TOTAL_STAKE_NMR", "0")
+    config["MAX_MODEL_STAKE_NMR"] = existing.get("MAX_MODEL_STAKE_NMR", "0")
+    config["MAX_STAKE_CHANGE_NMR"] = existing.get("MAX_STAKE_CHANGE_NMR", "0")
 
-    print(f"  AUTO_APPROVE_SUBMISSION = true")
+    print("  AUTO_APPROVE_SUBMISSION = false (human approval required)")
     print(f"  USE_ENSEMBLE = true")
     print(f"  DATA_VERSION = {config['DATA_VERSION']}")
     print(f"  FEATURE_SET = {config['FEATURE_SET']}")
@@ -186,10 +191,9 @@ def main():
     print("  Next steps:")
     print("    1. Create models at https://numer.ai/models (if not done)")
     print("    2. Test: python daily_numerai_run.py --mode numerapi-preflight")
-    print("    3. Dry run: python daily_numerai_run.py --mode full-auto")
-    print("    4. Set up daily cron:")
-    print("       cp com.numerai.daily.plist ~/Library/LaunchAgents/")
-    print("       launchctl load ~/Library/LaunchAgents/com.numerai.daily.plist")
+    print("    3. Read-only status: python daily_numerai_run.py --mode portfolio-status")
+    print("    4. Prepare: python daily_numerai_run.py --mode portfolio-prepare")
+    print("    5. Install the reviewed LaunchAgent plists from automation/")
     print()
 
     return 0

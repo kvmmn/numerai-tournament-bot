@@ -356,11 +356,11 @@
             </article>
             <article class="node">
               <h3>Governance Gate</h3>
-              <p>Approve, reject, or retry. Auto-submit only when enabled.</p>
+              <p>Creates a file- and model-bound challenge. Never auto-approves.</p>
             </article>
             <article class="node">
               <h3>Submit</h3>
-              <p>Uploads predictions to selected model(s), tracks per-model status.</p>
+              <p>Uploads one approved file to one model and verifies its ID.</p>
             </article>
             <article class="node">
               <h3>Report + Inbox</h3>
@@ -377,15 +377,15 @@
               <div class="step"><span class="dot good"></span><span>Discover tools via <span class="k">/api/v1/mcp/preflight</span></span></div>
               <div class="step"><span class="dot warn"></span><span>Tool mapping inferred or explicitly pinned by env</span></div>
               <div class="step"><span class="dot good"></span><span>Run stages through <span class="k">/api/v1/mcp/run</span></span></div>
-              <div class="step"><span class="dot warn"></span><span><span class="k">mcp-auto</span> submits only if <span class="k">automation/ENABLE_SUBMIT</span> exists</span></div>
+              <div class="step"><span class="dot warn"></span><span>MCP mutation routes are disabled; governed local submission is authoritative</span></div>
             </div>
           </article>
           <article class="lane">
             <h3>NumerAPI Fallback</h3>
             <div class="steps">
               <div class="step"><span class="dot good"></span><span>Uses <span class="k">NUMERAI_PUBLIC_ID</span> + <span class="k">NUMERAI_SECRET_KEY</span></span></div>
-              <div class="step"><span class="dot good"></span><span>Runs local sync/train/evaluate/submit pipeline</span></div>
-              <div class="step"><span class="dot good"></span><span>Targets explicit models using <span class="k">NUMERAI_MODEL_NAMES</span></span></div>
+              <div class="step"><span class="dot good"></span><span>Runs local data, portfolio, readiness, and verification controls</span></div>
+              <div class="step"><span class="dot good"></span><span>Requires one explicit target model per readiness packet</span></div>
               <div class="step"><span class="dot bad"></span><span>Any stage failure returns <span class="k">FAILED</span> and report for triage</span></div>
             </div>
           </article>
@@ -396,20 +396,20 @@
             <h2>2) Daily Automation Rhythm</h2>
             <div class="timeline">
               <div class="t-item">
-                <div class="time">09:00</div>
-                <div class="txt">Monitor run executes <span class="k">mcp-dry-run</span> and validates health.</div>
+                <div class="time">11:00</div>
+                <div class="txt">Deadline guard checks every model slot and time remaining.</div>
               </div>
               <div class="t-item">
-                <div class="time">11:30</div>
-                <div class="txt">Auto-gate run executes <span class="k">mcp-auto --strict</span>.</div>
+                <div class="time">15:00</div>
+                <div class="txt">Portfolio preparation creates one readiness packet per missing slot.</div>
               </div>
               <div class="t-item">
-                <div class="time">Submit Gate</div>
-                <div class="txt">Without <span class="k">ENABLE_SUBMIT</span>, it remains dry-run. With flag, submit is allowed.</div>
+                <div class="time">18:00 / 18:05</div>
+                <div class="txt">Outcome and stake-policy listeners run read-only checks.</div>
               </div>
               <div class="t-item">
-                <div class="time">After Run</div>
-                <div class="txt">Codex inbox receives findings; report artifacts stay on disk.</div>
+                <div class="time">Human Gate</div>
+                <div class="txt">Submission requires a current run ID and exact challenge; staking has a separate gate.</div>
               </div>
             </div>
           </article>
@@ -418,9 +418,9 @@
             <h2>3) Failure and Recovery Paths</h2>
             <div class="path-grid">
               <div class="path"><strong>Auth missing</strong> -> preflight fails -> fix env -> rerun</div>
-              <div class="path"><strong>MCP tool mismatch</strong> -> map tool names in env -> rerun</div>
+              <div class="path"><strong>Platform/API drift</strong> -> stop mutation -> inspect official API contract</div>
               <div class="path"><strong>Model/data failure</strong> -> status FAILED -> inspect latest report</div>
-              <div class="path"><strong>Submit blocked</strong> -> expected when gate file absent</div>
+              <div class="path"><strong>Submit blocked</strong> -> inspect packet, expiry, approval, and ledger</div>
             </div>
           </article>
         </section>
@@ -428,15 +428,14 @@
         <section class="card">
           <h2>4) File Map (Operational)</h2>
           <div class="filemap">
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/daily_numerai_run.py</div>
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/reports/*.json</div>
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/reports/*.md</div>
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/prompts/daily_monitor_mcp.md</div>
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/prompts/daily_submit_mcp.md</div>
-            <div class="file">/Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend/automation/ENABLE_SUBMIT</div>
+            <div class="file">~/Library/Application Support/Numerai/runtime/backend/automation/daily_numerai_run.py</div>
+            <div class="file">~/Library/Application Support/Numerai/runtime/backend/automation/reports/*.json</div>
+            <div class="file">~/Library/Application Support/Numerai/runtime/backend/automation/state/</div>
+            <div class="file">~/Library/Application Support/Numerai/runtime/backend/automation/model_registry/</div>
+            <div class="file">~/Library/Application Support/Numerai/runtime/backend/automation/logs/</div>
           </div>
           <p class="footer-note">
-            Practical rule: keep daily monitor always on; enable submit only when signal quality and platform health are stable.
+            Practical rule: keep read-only monitors always on; approve only exact, current artifacts.
           </p>
         </section>
       </div>

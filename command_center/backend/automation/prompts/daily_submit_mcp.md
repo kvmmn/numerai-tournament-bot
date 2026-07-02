@@ -1,14 +1,10 @@
-Run the Numerai daily MCP automation with strict failure mode and submit gate.
+Inspect the latest native portfolio preparation. Do not submit.
 
-Execution:
-- `cd /Users/kaveh/Desktop/base/_LAB/numerai/command_center/backend`
-- `python automation/daily_numerai_run.py --mode mcp-auto --strict`
-
-Then:
-- Read the latest report files in `automation/reports` (both `.json` and `.md`).
-- Provide a concise run report with:
-  - `ok` and `status`
-  - target models and per-model submission result
-  - round or stage context if available
-  - clear error block if any model failed
-- If submit was skipped, explicitly mention whether `automation/ENABLE_SUBMIT` flag was missing.
+- Read the newest `automation/reports/*_portfolio-prepare.json`.
+- Read the active portfolio, readiness packets, and submission ledger.
+- Report each account model as verified, awaiting approval, failed, or
+  unassigned.
+- For an awaiting packet, show its run ID, challenge, model, expiry, artifact
+  checksum, row count, and unique prediction count.
+- Never create an approval, invoke a submit mode, use `ENABLE_SUBMIT`, promote a
+  model, activate a portfolio, or change NMR stake.

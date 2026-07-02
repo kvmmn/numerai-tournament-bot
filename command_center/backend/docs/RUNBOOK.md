@@ -42,6 +42,7 @@ local manifest and expires after 24 hours.
 ```bash
 python automation/daily_numerai_run.py --mode numerapi-preflight --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
+python automation/daily_numerai_run.py --mode stake-status --strict
 python automation/daily_numerai_run.py --mode research-evaluate --strict
 python -m unittest discover -s tests -v
 ```
@@ -55,7 +56,8 @@ python -m unittest discover -s tests -v
 | Recent regime regression | Revoke packet; add research experiment |
 | Upload returned but not verified | Do not retry automatically; reconcile ID |
 | Missed deadline | Record postmortem; never backdate approval |
-| Poor resolved score | Trigger postmortem and pause stake increases |
+| Poor resolved score | Durable postmortem opens; pause stake increases |
+| Stake execution intent without result | Do not retry; reconcile with Numerai first |
 
 ## Staking
 
@@ -69,3 +71,31 @@ Stake increases remain disabled until all conditions hold:
 - separate proposal, challenge approval, and exact confirmation.
 
 Submitting a model never authorizes staking.
+
+The live stake audit is read-only:
+
+```bash
+python automation/daily_numerai_run.py --mode stake-status --strict
+```
+
+If a decrease is deliberately authorized, first configure a non-zero
+`MAX_STAKE_CHANGE_NMR`, then create a proposal. Zero total/model caps may remain
+in place because they continue to block increases.
+
+```bash
+python automation/daily_numerai_run.py \
+  --mode stake-propose --target-model MODEL \
+  --stake-action decrease --amount-nmr AMOUNT \
+  --rationale "REASON" --strict
+
+python automation/daily_numerai_run.py \
+  --mode stake-approve --stake-proposal-path PROPOSAL \
+  --challenge CHALLENGE --actor OPERATOR --strict
+
+python automation/daily_numerai_run.py \
+  --mode stake-execute --stake-proposal-path PROPOSAL \
+  --confirmation "EXACT CONFIRMATION FROM PROPOSAL" --strict
+```
+
+Never retry an execution when `execution_intent.json` exists without a matching
+`execution.json`; the API request may already have reached Numerai.

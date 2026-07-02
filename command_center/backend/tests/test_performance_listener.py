@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from pathlib import Path
 
 from app.core.performance_listener import PerformanceListener
 
@@ -51,7 +52,14 @@ class PerformanceListenerTests(unittest.TestCase):
             self.assertEqual(second["status"], "POSTMORTEM_REQUIRED")
             self.assertEqual(len(second["events"]), 1)
             self.assertTrue(second["postmortem_reasons"])
+            self.assertTrue(second["postmortem_created"])
+            self.assertTrue(second["postmortem_path"])
+            self.assertTrue(Path(second["postmortem_path"]).exists())
             self.assertTrue(second["read_only"])
+
+            repeated = listener.poll()
+            self.assertEqual(repeated["status"], "NO_NEW_OUTCOMES")
+            self.assertFalse(repeated["postmortem_created"])
 
 
 if __name__ == "__main__":
