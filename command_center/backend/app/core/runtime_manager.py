@@ -348,8 +348,11 @@ class RuntimeManager:
         )
         backup_path = self._code_backup(backup_paths, deployment_id)
 
+        # Keep staging on the same filesystem as the installed backend so each
+        # os.replace remains atomic and restricted service accounts need write
+        # access only to the runtime they manage.
         staging_root = (
-            self.runtime_root.parent
+            self.runtime_root
             / ".deploy-staging"
             / deployment_id
             / "backend"
