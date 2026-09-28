@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.core.runtime_manager import (
     RuntimeManager,
@@ -67,6 +68,14 @@ class RuntimeManagerTests(unittest.TestCase):
             "VALUE = 'source-v1'\n",
         )
         self.assertEqual((self.runtime / ".env").read_text(), "SECRET=value\n")
+
+    def test_deploy_preserves_virtual_environment_python_path(self):
+        venv_python = self.root / "venv" / "bin" / "python"
+        venv_python.parent.mkdir(parents=True)
+        venv_python.symlink_to("/usr/bin/python3")
+        with patch.object(self.manager, "_run_source_tests") as run_tests:
+            self.manager.deploy(python_path=venv_python)
+        run_tests.assert_called_once_with(venv_python)
         self.assertTrue(
             (self.runtime / "automation/state/submission_ledger.json").exists()
         )

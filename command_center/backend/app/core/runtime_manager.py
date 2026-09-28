@@ -331,7 +331,7 @@ class RuntimeManager:
         self._require_distinct_source()
         if run_tests:
             self._run_source_tests(
-                Path(python_path).resolve() if python_path else None
+                Path(python_path).expanduser() if python_path else None
             )
         paths = managed_source_files(self.source_root)
         source_manifest = _manifest_for_files(self.source_root, paths)
