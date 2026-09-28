@@ -202,8 +202,9 @@ class PortfolioGovernanceTests(unittest.TestCase):
             )
 
     def test_auto_submit_requires_explicit_enablement(self):
-        with self.assertRaisesRegex(PortfolioError, "disabled"):
-            PortfolioControlPlane(napi=_FakeApi()).auto_submit_all()
+        with patch("app.core.portfolio.settings.AUTO_SUBMIT_PORTFOLIO", False):
+            with self.assertRaisesRegex(PortfolioError, "disabled"):
+                PortfolioControlPlane(napi=_FakeApi()).auto_submit_all()
 
     def test_auto_submit_all_prepares_approves_and_submits_slots(self):
         with tempfile.TemporaryDirectory() as temporary:
