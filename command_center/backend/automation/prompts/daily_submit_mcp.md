@@ -1,6 +1,6 @@
 Inspect the latest native portfolio preparation. Do not submit.
 
-- Read the newest `automation/reports/*_portfolio-prepare.json`.
+- Read the newest `automation/reports/*_portfolio-auto-submit.json`.
 - Read the active portfolio, readiness packets, and submission ledger.
 - Report each account model as verified, awaiting approval, failed, or
   unassigned.

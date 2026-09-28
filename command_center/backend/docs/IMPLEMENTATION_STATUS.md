@@ -5,6 +5,7 @@
 | Dataset integrity and atomic refresh | Complete | Row-group validation; corrupted validation file repaired |
 | Prediction quality gate | Complete | Raw diversity checked before ranking |
 | Human-gated single-model submission | Complete | Round/model/file/evaluation approval identity |
+| Narrow automatic portfolio submission | Complete | Explicit switch, frozen checksums, zero-stake policy, idempotent verified upload |
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
 | Native scheduling | Complete | Ten `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |

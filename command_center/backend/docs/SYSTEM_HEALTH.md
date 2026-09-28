@@ -29,7 +29,7 @@ The supervisor checks:
 |---|---|---:|
 | Platform monitor | `state/platform/latest.json` | 30 hours |
 | Deadline guard | latest `portfolio-status` report | 30 hours |
-| Portfolio readiness | latest `portfolio-prepare` report | 30 hours |
+| Portfolio auto-submit | latest `portfolio-auto-submit` report | 30 hours |
 | Competition tracker | `state/competition/latest.json` | 30 hours |
 | Outcome listener | latest `score-listen` report | 30 hours |
 | Stake audit | latest `stake-status` report | 30 hours |

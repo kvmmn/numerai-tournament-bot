@@ -10,16 +10,18 @@ submission, outcome monitoring, postmortems, and controlled NMR staking.
 new round
   → refresh and validate data once
   → prepare each approved portfolio slot
-  → human approves each exact prediction file
-  → upload and verify the returned submission ID
+  → verify approved portfolio artifacts and safety policy
+  → automatically approve, upload, and verify eligible zero-stake submissions
   → collect resolved CORR/MMC outcomes
   → open a postmortem when live performance regresses
   → research bounded challengers
   → separately govern promotion and staking
 ```
 
-The default is fail-closed. There is no file-flag approval, multi-model
-broadcast submission, automatic promotion, or automatic stake mutation.
+The default is fail-closed. Portfolio auto-submit requires an explicit runtime
+switch and operates only on the human-approved active portfolio. There is no
+file-flag approval, broadcast of one artifact across models, automatic
+promotion, or automatic stake mutation.
 
 ## Start here
 
@@ -32,6 +34,7 @@ broadcast submission, automatic promotion, or automatic stake mutation.
 - [Operator runbook](docs/RUNBOOK.md)
 - [Runtime deployment and recovery](docs/RUNTIME_RECOVERY.md)
 - [Implementation status](docs/IMPLEMENTATION_STATUS.md)
+- [Automatic submission contract](docs/AUTO_SUBMISSION.md)
 
 ## Canonical runtime
 
@@ -65,7 +68,10 @@ python automation/daily_numerai_run.py --mode system-health --strict
 python automation/daily_numerai_run.py --mode score-listen --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 
-# Submission: three separate steps
+# Scheduled, portfolio-bound submission (disabled unless explicitly enabled)
+python automation/daily_numerai_run.py --mode portfolio-auto-submit --strict
+
+# Manual fallback: three separate steps
 python automation/daily_numerai_run.py --mode portfolio-prepare --strict
 python automation/daily_numerai_run.py \
   --mode agent-approve --run-id RUN_ID \
@@ -97,7 +103,7 @@ stake changes.
 |---|---|---|
 | 10:45 daily | Platform/API/data compatibility | No |
 | 11:00 daily | Deadline and portfolio coverage | No |
-| 15:00 daily | Portfolio readiness preparation | No |
+| 15:00 daily | Approved portfolio auto-submit and verification | Submission only |
 | 15:20 daily | Coverage, streak, rank, and season status | No |
 | 18:00 daily | Outcome listener and postmortem trigger | No |
 | 18:05 daily | Stake/portfolio policy reconciliation | No |
@@ -108,12 +114,15 @@ stake changes.
 Deduplicated native alerts run at 11:05, 15:25, 18:12, and 19:15 after the
 corresponding read-only checks.
 
-Codex watchdogs inspect these reports shortly afterward. Submissions,
-promotions, portfolio activation, and stake changes are never scheduled.
+Codex watchdogs inspect these reports shortly afterward. Portfolio submissions
+are scheduled only when `AUTO_SUBMIT_PORTFOLIO=true`; promotions, portfolio
+activation, and stake changes are never scheduled.
 
 ## Safety boundaries
 
 - One readiness packet targets exactly one Numerai model UUID.
+- Automatic submission rechecks the active portfolio's artifact and evidence checksums.
+- Automatic submission refuses every stake-eligible assignment.
 - Prediction IDs, ranges, diversity, checksum, and current round are verified.
 - A verified local ledger prevents repeat round/model uploads.
 - Shadow models are permanently stake-ineligible.

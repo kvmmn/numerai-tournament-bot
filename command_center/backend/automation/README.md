@@ -20,6 +20,9 @@ for Codex Automations.
   hash, prediction schema, and idempotency ledger before one upload.
 - `portfolio-prepare`: loads the active distinct per-slot assignments, skips
   already submitted slots, and prepares independent packets for the rest.
+- `portfolio-auto-submit`: when `AUTO_SUBMIT_PORTFOLIO=true`, revalidates the
+  approved portfolio and automatically prepares, approves, uploads, verifies,
+  and records only non-stake-eligible assignments.
 - `portfolio-propose`, `portfolio-approve`, `portfolio-activate`: freeze,
   authorize, and atomically switch the per-slot assignment set. Activation does
   not submit.
@@ -33,6 +36,7 @@ python automation/daily_numerai_run.py --mode agent-approve \
 python automation/daily_numerai_run.py --mode agent-submit \
   --run-id <run-id> --strict
 python automation/daily_numerai_run.py --mode portfolio-prepare --strict
+python automation/daily_numerai_run.py --mode portfolio-auto-submit --strict
 ```
 
 ## Legacy modes
@@ -59,9 +63,9 @@ python -m unittest discover -s tests
 1. Let macOS `launchd` run platform, deadline, portfolio, competition, outcome,
    stake-audit, alerts, backup, health, and research jobs.
 2. Let Codex watchdogs inspect each native report 15–30 minutes later.
-3. Record approval only after a human checks the round, model, artifact hash,
-   and prediction validation.
-4. Run `agent-submit` with the approved run id.
+3. Keep the active portfolio human-approved and checksum-bound.
+4. Let the explicitly enabled auto-submit path handle eligible portfolio slots;
+   use `agent-approve` and `agent-submit` only as the manual fallback.
 5. Monitor `automation/state/audit.jsonl` and `submission_ledger.json`.
 
 ## Unattended runtime
@@ -84,7 +88,7 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 
 ## Suggested cadence
 - Native platform compatibility monitor: every day at 10:45 local time.
-- Native readiness preparation: every day at 15:00 local time.
+- Native portfolio auto-submit: every day at 15:00 local time.
 - Native competition tracker: every day at 15:20 local time.
 - Codex readiness watchdog: every day at 15:30 local time.
 - Native deadline guard / watchdog: every day at 11:00 / 11:15.
@@ -94,7 +98,8 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 - Native cross-job health supervisor: every day at 19:10.
 - Native research / watchdog: Sunday at 16:00 / 16:15.
 - Native deduplicated alerts: 11:05, 15:25, 18:12, and 19:15.
-- Submission is never scheduled; it requires a current, explicit approval.
+- Submission is scheduled only for the approved portfolio when
+  `AUTO_SUBMIT_PORTFOLIO=true`; promotion and staking remain manual.
 
 ## Failure handling
 - If `ok=false`, report stays in inbox for triage.
@@ -103,6 +108,9 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 
 ## Submission and staking gates
 - A file flag is not an approval.
+- The auto-submit switch is a kill switch, not portfolio approval; the active
+  portfolio must already have a valid human-approved identity.
+- Automatic submission refuses stake-eligible assignments and changed artifacts.
 - Readiness approvals are bound to round, model UUID, and submission SHA-256.
 - Stake increases are disabled while policy caps are zero.
 - Stake execution requires a separate approval challenge and exact confirmation.

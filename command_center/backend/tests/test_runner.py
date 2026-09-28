@@ -62,6 +62,16 @@ class GovernedRunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "NO_NEW_ALERTS")
         dispatch.assert_called_once_with()
 
+    def test_portfolio_auto_submit_dispatches_narrow_automation(self):
+        args = argparse.Namespace(actor="automation")
+        with patch(
+            "automation.daily_numerai_run.PortfolioControlPlane.auto_submit_all",
+            return_value={"ok": True, "status": "PORTFOLIO_SUBMITTED_VERIFIED"},
+        ) as auto_submit:
+            result = run_mode("portfolio-auto-submit", args)
+        self.assertEqual(result["status"], "PORTFOLIO_SUBMITTED_VERIFIED")
+        auto_submit.assert_called_once_with(actor="automation")
+
     def test_stake_mutations_require_explicit_arguments(self):
         args = argparse.Namespace(
             target_model="kvmmn",

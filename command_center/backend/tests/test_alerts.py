@@ -68,6 +68,37 @@ class AlertDispatcherTests(unittest.TestCase):
             self.assertEqual(len(third["delivered"]), 1)
             self.assertEqual(len(notifications), 3)
 
+    def test_auto_submit_failure_is_actionable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            state = root / "state"
+            reports = root / "reports"
+            self.write(
+                reports / "20260702_150000_portfolio-auto-submit.json",
+                {
+                    "ok": False,
+                    "status": "PORTFOLIO_AUTO_SUBMIT_PARTIAL_FAILURE",
+                    "results": [
+                        {
+                            "ok": False,
+                            "status": "AUTO_SUBMIT_FAILED",
+                            "target_model": "kvmmn_te",
+                        }
+                    ],
+                },
+            )
+            notifications = []
+            result = AlertDispatcher(
+                state,
+                reports,
+                notifier=lambda title, message: notifications.append(
+                    (title, message)
+                ),
+            ).dispatch()
+            self.assertEqual(result["status"], "ALERTS_DELIVERED")
+            self.assertEqual(len(notifications), 1)
+            self.assertIn("kvmmn_te", notifications[0][1])
+
     def test_failed_delivery_is_recorded_and_retried(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

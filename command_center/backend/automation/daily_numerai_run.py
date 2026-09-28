@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Governed Numerai operations runner.
 
-Submission, portfolio promotion, and staking are separate workflows. Every
-mutation requires a current challenge-bound approval; legacy direct-submit
-modes remain disabled.
+Submission, portfolio promotion, and staking are separate workflows. Portfolio
+submission may use the explicitly enabled, portfolio-bound auto-submit path;
+promotion and staking mutations remain explicitly approved.
 """
 from __future__ import annotations
 
@@ -402,6 +402,10 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return AgenticControlPlane().submit(run_id=getattr(args, "run_id", None))
     if mode == "portfolio-prepare":
         return PortfolioControlPlane().prepare_all()
+    if mode == "portfolio-auto-submit":
+        return PortfolioControlPlane().auto_submit_all(
+            actor=getattr(args, "actor", None) or "portfolio-auto-submit",
+        )
     if mode == "portfolio-status":
         return PortfolioControlPlane().inspect()
     if mode == "portfolio-propose":
@@ -577,6 +581,7 @@ def parse_args() -> argparse.Namespace:
             "agent-approve",
             "agent-submit",
             "portfolio-prepare",
+            "portfolio-auto-submit",
             "portfolio-status",
             "portfolio-propose",
             "portfolio-approve",

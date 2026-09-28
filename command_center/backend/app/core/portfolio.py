@@ -43,6 +43,21 @@ def _artifact_record(path: str | Path) -> dict[str, Any]:
     }
 
 
+def _verify_assignment_artifacts(assignment: dict[str, Any]) -> None:
+    """Fail closed if an approved portfolio artifact changed or disappeared."""
+    for field in ("artifact", "evidence"):
+        expected = assignment.get(field)
+        if not expected:
+            continue
+        path = Path(expected["path"]).resolve()
+        if not path.is_file():
+            raise PortfolioError(f"Approved portfolio {field} is missing: {path}")
+        if _sha256(path) != expected["sha256"]:
+            raise PortfolioError(
+                f"Approved portfolio {field} checksum changed: {path}"
+            )
+
+
 def _normalize_assignments(assignments: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not assignments:
         raise PortfolioError("A portfolio requires at least one model assignment.")
@@ -437,6 +452,7 @@ class PortfolioControlPlane:
         for assignment in portfolio["assignments"]:
             _, model_id = resolve_single_model(models, assignment["model_name"])
             if not control.ledger.contains(round_number, model_id):
+                _verify_assignment_artifacts(assignment)
                 pending_assignments.append(assignment)
         shared_data_report = sync_datasets(napi) if pending_assignments else None
         for assignment in portfolio["assignments"]:
@@ -453,6 +469,7 @@ class PortfolioControlPlane:
                 )
                 continue
             try:
+                _verify_assignment_artifacts(assignment)
                 result = control.prepare(
                     target_model=model_name,
                     artifact_path=assignment["artifact"]["path"],
@@ -502,5 +519,118 @@ class PortfolioControlPlane:
             "account_model_count": len(models),
             "unassigned_count": unassigned_count,
             "coverage_complete": unassigned_count == 0,
+            "results": results,
+        }
+
+    def auto_submit_all(self, *, actor: str = "portfolio-auto-submit") -> dict[str, Any]:
+        if not settings.AUTO_SUBMIT_PORTFOLIO:
+            raise PortfolioError(
+                "Portfolio auto-submit is disabled; set AUTO_SUBMIT_PORTFOLIO=true "
+                "only for the installed scheduled runtime."
+            )
+        portfolio = load_current_portfolio(self.registry_dir)
+        control = AgenticControlPlane(self.state_dir, napi=self.napi)
+        napi = control._api()
+        round_number = int(napi.get_current_round())
+        models = napi.get_models()
+        results = []
+        assigned_model_keys: set[str] = set()
+        pending_assignments = []
+        for assignment in portfolio["assignments"]:
+            if assignment.get("stake_eligible"):
+                raise PortfolioError(
+                    "Automated submission refuses stake-eligible assignments."
+                )
+            _, model_id = resolve_single_model(models, assignment["model_name"])
+            if not control.ledger.contains(round_number, model_id):
+                _verify_assignment_artifacts(assignment)
+                pending_assignments.append(assignment)
+        shared_data_report = sync_datasets(napi) if pending_assignments else None
+        for assignment in portfolio["assignments"]:
+            model_name, model_id = resolve_single_model(models, assignment["model_name"])
+            assigned_model_keys.add(model_name.casefold())
+            if control.ledger.contains(round_number, model_id):
+                results.append(
+                    {
+                        "ok": True,
+                        "status": "ALREADY_SUBMITTED",
+                        "round_number": round_number,
+                        "target_model": model_name,
+                    }
+                )
+                continue
+            try:
+                _verify_assignment_artifacts(assignment)
+                prepared = control.prepare(
+                    target_model=model_name,
+                    artifact_path=assignment["artifact"]["path"],
+                    deployment_tier=assignment["deployment_tier"],
+                    shadow_evidence_path=(
+                        assignment["evidence"]["path"]
+                        if assignment.get("evidence")
+                        else None
+                    ),
+                    data_report=shared_data_report,
+                )
+                if prepared["validation"].get("stake_eligible") is not False:
+                    raise PortfolioError(
+                        "Automated submission refuses stake-eligible readiness packets."
+                    )
+                approval = control.approve(
+                    run_id=prepared["run_id"],
+                    challenge=prepared["approval_challenge"],
+                    actor=actor,
+                )
+                submitted = control.submit(run_id=prepared["run_id"])
+                result = {
+                    "ok": submitted["ok"],
+                    "status": submitted["status"],
+                    "round_number": round_number,
+                    "target_model": model_name,
+                    "run_id": prepared["run_id"],
+                    "approval_status": approval["status"],
+                    "submission_id": submitted.get("submission_id"),
+                    "verified": submitted.get("verified"),
+                }
+            except Exception as exc:
+                result = {
+                    "ok": False,
+                    "status": "AUTO_SUBMIT_FAILED",
+                    "target_model": model_name,
+                    "error": str(exc),
+                }
+            results.append(result)
+        assigned_results = list(results)
+        for model_name in models:
+            if model_name.casefold() not in assigned_model_keys:
+                results.append(
+                    {
+                        "ok": True,
+                        "status": "UNASSIGNED",
+                        "round_number": round_number,
+                        "target_model": model_name,
+                    }
+                )
+        ok = all(result["ok"] for result in assigned_results)
+        assigned_statuses = {result["status"] for result in assigned_results}
+        unassigned_count = len(models) - len(assigned_model_keys)
+        if not ok:
+            status = "PORTFOLIO_AUTO_SUBMIT_PARTIAL_FAILURE"
+        elif unassigned_count:
+            status = "PORTFOLIO_AUTO_SUBMIT_PARTIAL_COVERAGE"
+        elif assigned_statuses == {"ALREADY_SUBMITTED"}:
+            status = "PORTFOLIO_ALREADY_SUBMITTED"
+        else:
+            status = "PORTFOLIO_SUBMITTED_VERIFIED"
+        return {
+            "ok": ok,
+            "status": status,
+            "round_number": round_number,
+            "assignment_count": len(portfolio["assignments"]),
+            "account_model_count": len(models),
+            "unassigned_count": unassigned_count,
+            "coverage_complete": unassigned_count == 0,
+            "auto_approval_actor": actor,
+            "stake_mutations_enabled": False,
             "results": results,
         }

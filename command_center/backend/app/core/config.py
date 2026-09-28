@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     MIN_TRAIN_ERAS: int = 100
     NEUTRALIZATION_PROPORTION: float = 0.75
     AUTO_APPROVE_SUBMISSION: bool = False
+    # Explicit kill switch for the narrow, portfolio-bound scheduled submitter.
+    # This is separate from the legacy AUTO_APPROVE_SUBMISSION setting: only
+    # assignments from the approved active portfolio may use this path.
+    AUTO_SUBMIT_PORTFOLIO: bool = False
 
     # Comma-separated list, e.g. "KVMMN,KVMMN_FN,KVMMN_TE"
     NUMERAI_MODEL_NAMES: str | None = None

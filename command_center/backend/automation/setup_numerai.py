@@ -160,6 +160,7 @@ def main():
     print("-" * 40)
 
     config["AUTO_APPROVE_SUBMISSION"] = "false"
+    config["AUTO_SUBMIT_PORTFOLIO"] = "false"
     config["USE_ENSEMBLE"] = "true"
     config["DATA_VERSION"] = existing.get("DATA_VERSION", "v5.2")
     config["FEATURE_SET"] = existing.get("FEATURE_SET", "small")
@@ -171,7 +172,8 @@ def main():
     config["MAX_MODEL_STAKE_NMR"] = existing.get("MAX_MODEL_STAKE_NMR", "0")
     config["MAX_STAKE_CHANGE_NMR"] = existing.get("MAX_STAKE_CHANGE_NMR", "0")
 
-    print("  AUTO_APPROVE_SUBMISSION = false (human approval required)")
+    print("  AUTO_APPROVE_SUBMISSION = false (legacy path disabled)")
+    print("  AUTO_SUBMIT_PORTFOLIO = false (enable only after portfolio approval)")
     print(f"  USE_ENSEMBLE = true")
     print(f"  DATA_VERSION = {config['DATA_VERSION']}")
     print(f"  FEATURE_SET = {config['FEATURE_SET']}")

@@ -1,8 +1,8 @@
 # Numerai Winning OS — Operating Map
 
-This system separates **thinking**, **approval**, and **execution**. Agents do
-the repeatable work. A person approves submissions, model promotions, and stake
-changes.
+This system separates **portfolio approval**, **submission execution**, and
+**money-changing actions**. A person approves the portfolio, promotions, and
+stake changes. A narrowly enabled agent may submit only that frozen portfolio.
 
 ```mermaid
 flowchart LR
@@ -12,9 +12,9 @@ flowchart LR
     D0 --> D["Risk Judge<br/>history + recent regimes"]
     D -->|pass| E["Readiness packet"]
     D -->|fail| F["Research backlog"]
-    E --> G{"Human approval"}
-    G -->|approve| H["Submission Agent"]
-    G -->|reject / expire| F
+    E --> G{"Approved portfolio + automation policy"}
+    G -->|eligible| H["Submission Agent"]
+    G -->|reject| F
     H --> I["Verification Listener<br/>confirm submission ID"]
     I --> J["Score Listener<br/>wait for resolved results"]
     J -->|regression| K["Postmortem"]
@@ -32,8 +32,8 @@ flowchart LR
 | Portfolio Governor | Maps each slot to one distinct approved artifact | No |
 | Prediction Agent | Produces predictions from one frozen model | No |
 | Risk Judge | Tests long-term and recent performance | No |
-| Governance Guard | Creates a time-limited approval challenge | No |
-| Submission Agent | Uploads only the approved file | Yes, submission only |
+| Governance Guard | Confirms frozen portfolio and readiness identity | No |
+| Submission Agent | Uploads only a checksum-verified portfolio file | Yes, submission only |
 | Verification Listener | Confirms Numerai returned the submission ID | No |
 | Score Listener | Reads resolved results and triggers postmortems | No |
 | Research Agent | Compares challengers and prepares promotion proposals | No |
@@ -46,14 +46,14 @@ flowchart LR
 |---|---|---|
 | Every day, 10:45 / 11:05 | Native Platform Monitor / native alert | API, data-version, round, mapping, and stake-read compatibility |
 | Every day, 11:00 / 11:15 | Native Deadline Guard / Codex watchdog | Missing/ready/submitted warning before close |
-| Every day, 15:00 / 15:30 | Native Portfolio Readiness / Codex watchdog | Per-slot packet, submitted skip, or rejection |
+| Every day, 15:00 / 15:30 | Native Portfolio Auto-submit / Codex watchdog | Verified per-slot upload, idempotent skip, or actionable rejection |
 | Every day, 15:20 / 15:30 | Native Competition Status / shared Codex watchdog | Coverage, streak, rank, and season progress |
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
 | Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
 | Every day, 19:00 / 19:15 | Native State Backup / Codex watchdog | Verified credential-free recovery archive |
 | Every day, 19:10 / 19:15 | Native System Health / native alert | Loaded jobs plus fresh successful evidence |
 | Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
-| Human approves packet | Submission Agent | One upload to one model |
+| Human-approved portfolio passes automation policy | Submission Agent | One upload to one model |
 | New resolved score is poor | Postmortem trigger | Research task, no auto-retry |
 | 20+ post-deployment resolved rounds | Stake review becomes eligible | Still requires caps and approval |
 
@@ -75,6 +75,8 @@ durable report identity.
   checksums across slots are rejected.
 - Approval is tied to the round, model UUID, prediction file, evaluation, actor,
   and expiry.
+- Auto-submit is disabled unless `AUTO_SUBMIT_PORTFOLIO=true`, rechecks frozen
+  artifact/evidence checksums, and refuses stake-eligible assignments.
 - A revoked or changed packet cannot be submitted.
 - A round/model pair cannot be submitted twice by this control plane.
 - Direct legacy submit routes and file-flag approval are disabled.

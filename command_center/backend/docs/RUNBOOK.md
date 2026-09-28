@@ -2,23 +2,21 @@
 
 ## Normal daily flow
 
-1. **Readiness automation** refreshes data and evaluates the frozen candidate.
-2. If it passes, review the round, model, metrics, checksum, and expiry.
-3. Approve with the packet's run ID and challenge.
-4. Submit that run ID.
-5. Confirm status is `SUBMITTED_VERIFIED`.
+1. Platform and deadline monitors confirm the round is safe to enter.
+2. The 15:00 job loads the human-approved active portfolio.
+3. It verifies model and evidence checksums, refreshes live data once, and runs
+   each slot through prediction and robustness validation.
+4. Eligible zero-stake assignments are approved, uploaded, and verified.
+5. Confirm the report is `PORTFOLIO_SUBMITTED_VERIFIED` or the idempotent
+   `PORTFOLIO_ALREADY_SUBMITTED`.
 
 ```bash
-python automation/daily_numerai_run.py \
-  --mode agent-approve --run-id RUN_ID \
-  --challenge CHALLENGE --actor OPERATOR --strict
-
-python automation/daily_numerai_run.py \
-  --mode agent-submit --run-id RUN_ID --strict
+python automation/daily_numerai_run.py --mode portfolio-auto-submit --strict
 ```
 
-Never approve a packet showing a revocation, failed recent window, changed
-checksum, expired deadline, or unexpected model slot.
+Keep `AUTO_SUBMIT_PORTFOLIO=false` outside the installed scheduler. Disable it
+immediately when portfolio identity, model checksums, platform contracts, live
+IDs, or verification behavior are in doubt. See `AUTO_SUBMISSION.md`.
 
 ## Promoting a researched challenger
 
@@ -64,6 +62,7 @@ python -m unittest discover -s tests -v
 | Constant predictions | Reject model; retrain or fix features |
 | Recent regime regression | Revoke packet; add research experiment |
 | Upload returned but not verified | Do not retry automatically; reconcile ID |
+| Auto-submit partial failure | Inspect the per-slot result; rely on the ledger to skip verified slots and rerun only after the cause is understood |
 | Missed deadline | Record postmortem; never backdate approval |
 | Poor resolved score | Durable postmortem opens; pause stake increases |
 | Stake execution intent without result | Do not retry; reconcile with Numerai first |

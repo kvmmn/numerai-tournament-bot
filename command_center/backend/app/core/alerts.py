@@ -175,28 +175,27 @@ class AlertDispatcher:
 
         portfolio_path = self._latest(
             self.reports_dir,
-            "*_portfolio-prepare.json",
+            "*_portfolio-auto-submit.json",
         )
         portfolio = self._load(portfolio_path)
         if portfolio_path and portfolio and portfolio.get("status") in {
-            "PORTFOLIO_AWAITING_HUMAN_APPROVAL",
-            "PORTFOLIO_PREPARATION_FAILED",
-            "PORTFOLIO_PARTIAL_COVERAGE",
+            "PORTFOLIO_AUTO_SUBMIT_PARTIAL_FAILURE",
+            "PORTFOLIO_AUTO_SUBMIT_PARTIAL_COVERAGE",
         }:
-            waiting = [
+            failed = [
                 str(row.get("target_model"))
                 for row in portfolio.get("results", [])
-                if row.get("status") == "AWAITING_HUMAN_APPROVAL"
+                if not row.get("ok", False)
             ]
             detail = (
-                f"Approval required for {', '.join(waiting)}."
-                if waiting
+                f"Automatic submission failed for {', '.join(failed)}."
+                if failed
                 else f"Portfolio status: {portfolio.get('status')}."
             )
             candidates.append(
                 self._candidate(
                     category="readiness",
-                    title="Numerai readiness requires review",
+                    title="Numerai automatic submission requires review",
                     message=detail,
                     source=portfolio_path,
                     payload=portfolio,

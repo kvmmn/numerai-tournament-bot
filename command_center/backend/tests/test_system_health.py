@@ -45,7 +45,7 @@ class SystemHealthMonitorTests(unittest.TestCase):
         )
         for mode, status in (
             ("portfolio-status", "DEADLINE_GUARD_ACTION_REQUIRED"),
-            ("portfolio-prepare", "PORTFOLIO_AWAITING_HUMAN_APPROVAL"),
+            ("portfolio-auto-submit", "PORTFOLIO_SUBMITTED_VERIFIED"),
             ("score-listen", "NO_NEW_OUTCOMES"),
             ("stake-status", "STAKE_POLICY_ACTION_REQUIRED"),
             ("research-evaluate", "RESEARCH_PROMOTE"),

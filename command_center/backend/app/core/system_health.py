@@ -120,9 +120,9 @@ class SystemHealthMonitor:
             ),
             EvidenceSpec(
                 "com.numerai.daily",
-                "portfolio readiness",
+                "portfolio auto-submit",
                 self.reports_dir,
-                "*_portfolio-prepare.json",
+                "*_portfolio-auto-submit.json",
                 30,
             ),
             EvidenceSpec(

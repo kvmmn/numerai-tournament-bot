@@ -9,7 +9,6 @@ __pycache__/
 v5.2/
 *.parquet
 *.parquet.temp
-*.json
 
 # Models
 *.pkl
@@ -25,5 +24,14 @@ command_center/backend/automation/research/
 command_center/backend/automation/optimization/
 command_center/backend/automation/target_optimization/
 command_center/backend/automation/feature_optimization/
+command_center/backend/automation/model_registry/
 command_center/backend/automation/ENABLE_SUBMIT
 command_center/backend/numerai_mcp_codex_config.toml
+command_center/backend/.runtime_deployment.json
+
+# JavaScript and test/build output
+node_modules/
+dist/
+.coverage
+coverage.xml
+.pytest_cache/

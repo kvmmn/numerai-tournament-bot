@@ -1,51 +1,75 @@
-# Numerai Tournament Bot
+# Numerai Winning OS
 
-A modular baseline tournament bot for the [Numerai](https://numer.ai) competition.
+A tested, governed Numerai Tournament control plane for data refresh, model
+research, portfolio assignment, automatic submission, outcome monitoring,
+postmortems, recovery, and separately approved NMR staking.
 
-## Agentic Winning OS
+The production system lives in [`command_center/backend`](command_center/backend/README.md).
+The root baseline scripts and `example-scripts` are retained as reference
+material; they are not used by the scheduled production pipeline.
 
-The governed control plane lives in
-[`command_center/backend`](command_center/backend/README.md). It adds:
+## Production workflow
 
-- delegated data, prediction, risk, submission, outcome, research, and staking agents;
-- human-gated, checksum-bound submissions to one model slot;
-- dataset integrity, idempotency, verification, and postmortem triggers;
-- temporal robustness, immutable model bundles, and bounded optimization sweeps;
-- concise schematic guides for operators and model researchers.
+```text
+Numerai round opens
+  → validate platform and dataset contracts
+  → load the human-approved portfolio
+  → refresh live data once
+  → verify every approved model/evidence checksum
+  → generate and validate one prediction file per model slot
+  → apply robustness and zero-stake automation policy
+  → approve, upload, and verify each eligible submission
+  → record an idempotent round/model ledger entry
+  → collect outcomes, health, alerts, and backups
+```
 
-Start with the [Operating System Map](command_center/backend/docs/OPERATING_SYSTEM.md)
-and [Modeling Guide](command_center/backend/docs/MODELING_AND_OPTIMIZATION.md).
+Automatic submission is deliberately narrow. It is disabled by default,
+requires `AUTO_SUBMIT_PORTFOLIO=true` in the installed runtime, accepts only the
+already human-approved active portfolio, refuses stake-eligible assignments,
+revalidates frozen checksums, and never authorizes promotion or stake changes.
 
-The system does not claim guaranteed competition wins. It is designed to make
-good research repeatable and unsafe submissions or stake changes difficult.
+## Repository map
 
-## Setup
+- [`command_center/backend/app`](command_center/backend/app): API, agents, and domain control planes.
+- [`command_center/backend/automation`](command_center/backend/automation): governed CLI, native schedules, reports, and deployment tooling.
+- [`command_center/backend/tests`](command_center/backend/tests): unit and safety-contract tests.
+- [`command_center/backend/docs`](command_center/backend/docs): architecture, operations, health, recovery, and competition policy.
+- [`.github/workflows/agentic-winning-os.yml`](.github/workflows/agentic-winning-os.yml): Python 3.12 CI.
 
-1. **Environment**:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
+Runtime credentials, datasets, models, reports, logs, approval state, and
+submission records are intentionally excluded from Git.
 
-2. **Credentials**:
-   Create a `.env` file in the root directory:
-   ```env
-   NUMERAI_PUBLIC_ID=YOUR_PUBLIC_ID
-   NUMERAI_SECRET_KEY=YOUR_SECRET_KEY
-   ```
+## Local verification
 
-3. **Usage**:
-   - `python baseline_model.py`: Downloads data, trains a baseline LGBM model, and saves it.
-   - `python validation_suite.py`: Benchmarks the saved model against the validation set.
+```bash
+cd command_center/backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests -v
+python -m compileall -q app automation tests
+```
 
-## Project Structure
+The complete production dependency set is in
+`command_center/backend/requirements.txt`. Copy `.env.example` to `.env` only in
+the installed runtime and never commit credentials.
 
-- `baseline_model.py`: Core training pipeline.
-- `validation_suite.py`: Scoring and metrics (CORR, Sharpe, Max Drawdown).
-- `cv_utils.py`: Era-aware cross-validation logic.
-- `.env`: (Ignored) API credentials.
-- `v5.2/`: (Ignored) Large parquet datasets.
+## Runtime and operations
 
-## Automated Updates
-A git `post-commit` hook is configured locally to automatically push all commits to the remote origin.
+The reviewed code is stored in Git. Mutable production state runs from:
+
+```text
+~/Library/Application Support/Numerai/
+├── data/v5.2/
+├── backups/
+└── runtime/
+    ├── .venv/
+    └── backend/
+```
+
+Start with the [operator runbook](command_center/backend/docs/RUNBOOK.md),
+[operating map](command_center/backend/docs/OPERATING_SYSTEM.md), and
+[runtime recovery guide](command_center/backend/docs/RUNTIME_RECOVERY.md).
+
+This project improves process quality and operational safety; it cannot
+guarantee tournament performance, rewards, or rank.
