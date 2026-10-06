@@ -12,13 +12,12 @@ description: Use when choosing the next Numerai model comparison, research gap, 
    Rank live slots by `meanMmc`, `priorMeanMmc`, and `recentMeanMmc`
    from `live_performance`, not by the old promotion-candidate paragraph.
    A drop is `recentMean*` turning negative while `priorMean*` was positive.
-3. Recommend exactly one next experiment: a bake-off that runs one
-   declared idea already represented in `modelSuite` or
-   `optimizerEntrypoints` through walk-forward evaluation and the
-   existing promotion gate. Aim it at the slot with the better live
-   MMC. Prefer wiring `optimizerEntrypoints` into research when
-   `optimizerImportedByDailyRunner` is false. Missing rounds are an
-   operations gap, separate from the model idea.
+3. Recommend exactly one next experiment. Rank slots by `eraMeanMmc`
+   from `live_performance` and pass `era_mean_mmc` plus
+   `recent_mean_mmc` through `choose_daily_step` (runner mode
+   `daily-step`). That function names the bar slot, the weaker slot,
+   and one existing optimizer entrypoint. It does not train or submit.
+   Missing rounds stay an operations note, separate from that experiment.
 4. Do not invent a new uploader, re-enable a disabled mode, or move
    stake. Shadow slots stay zero-stake.
 5. Reply with these sections, in the user's language:

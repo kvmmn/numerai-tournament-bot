@@ -41,6 +41,9 @@ type ModelLive = {
   negativeMmcRounds: number;
   priorMeanCorr20: number | null;
   priorMeanMmc: number | null;
+  eraMeanCorr20: number | null;
+  eraMeanMmc: number | null;
+  eraScoredRounds: number;
   recentMeanCorr20: number | null;
   recentMeanMmc: number | null;
   recentNegativeCorrRounds: number;
@@ -130,6 +133,9 @@ function emptyModel(name: string): ModelLive {
     negativeMmcRounds: 0,
     priorMeanCorr20: null,
     priorMeanMmc: null,
+    eraMeanCorr20: null,
+    eraMeanMmc: null,
+    eraScoredRounds: 0,
     recentMeanCorr20: null,
     recentMeanMmc: null,
     recentNegativeCorrRounds: 0,
@@ -139,7 +145,7 @@ function emptyModel(name: string): ModelLive {
   };
 }
 
-function holesAfterLastLongPause(missing: number[]): number[] {
+function lastLongPauseEnd(missing: number[]): number {
   let pauseEnd = -1;
   let runStart = 0;
   for (let i = 0; i < missing.length; i += 1) {
@@ -148,8 +154,7 @@ function holesAfterLastLongPause(missing: number[]): number[] {
     const runLength = i - runStart + 1;
     if (runLength >= 8) pauseEnd = missing[i] ?? pauseEnd;
   }
-  const holes = pauseEnd < 0 ? missing : missing.filter((roundNumber) => roundNumber > pauseEnd);
-  return holes.slice(0, 40);
+  return pauseEnd;
 }
 
 function stakeDrop(rounds: RawRound[]): StakeDrop | null {
@@ -194,13 +199,17 @@ function summarize(name: string, profile: RawProfile | null): ModelLive {
       : rounds
           .map((round) => round.roundNumber ?? 0)
           .filter((roundNumber) => roundNumber >= first && roundNumber < last && !scoredNumbers.has(roundNumber));
-  const missingRounds = holesAfterLastLongPause(allMissing);
+  const pauseEnd = lastLongPauseEnd(allMissing);
+  const missingRounds = (pauseEnd < 0 ? allMissing : allMissing.filter((roundNumber) => roundNumber > pauseEnd)).slice(0, 40);
+  const era = pauseEnd < 0 ? scored : scored.filter((round) => (round.roundNumber ?? 0) > pauseEnd);
   const recentScored = scored.slice(-12);
   const prior = scored.slice(Math.max(0, scored.length - 42), Math.max(0, scored.length - 12));
   const corr = scored.map((round) => round.corr20V2).filter((value): value is number => value !== null && value !== undefined);
   const mmc = scored.map((round) => round.mmc).filter((value): value is number => value !== null && value !== undefined);
   const priorCorr = prior.map((round) => round.corr20V2).filter((value): value is number => value != null);
   const priorMmc = prior.map((round) => round.mmc).filter((value): value is number => value != null);
+  const eraCorr = era.map((round) => round.corr20V2).filter((value): value is number => value != null);
+  const eraMmc = era.map((round) => round.mmc).filter((value): value is number => value != null);
   const recentCorr = recentScored.map((round) => round.corr20V2).filter((value): value is number => value != null);
   const recentMmc = recentScored.map((round) => round.mmc).filter((value): value is number => value != null);
 
@@ -224,6 +233,9 @@ function summarize(name: string, profile: RawProfile | null): ModelLive {
     negativeMmcRounds: mmc.filter((value) => value < 0).length,
     priorMeanCorr20: mean(priorCorr),
     priorMeanMmc: mean(priorMmc),
+    eraMeanCorr20: mean(eraCorr),
+    eraMeanMmc: mean(eraMmc),
+    eraScoredRounds: era.length,
     recentMeanCorr20: mean(recentCorr),
     recentMeanMmc: mean(recentMmc),
     recentNegativeCorrRounds: recentCorr.filter((value) => value < 0).length,
