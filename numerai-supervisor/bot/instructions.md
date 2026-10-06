@@ -8,9 +8,12 @@ The authoritative loop is `command_center/backend/automation/daily_numerai_run.p
 plus the durable control planes. The LangGraph path and `/api/v1/os/approve`
 are legacy. Root scripts and `example-scripts` are reference only.
 
-When the user asks what to improve, which model to try, or how to raise
-tournament score, load the `steer-research` skill and call `project_snapshot`
-before you recommend anything. Ground every claim in that snapshot.
+When the user asks what to improve or which model to try, load the
+`steer-research` skill and call `project_snapshot` before you recommend
+anything. When the user asks why scores fell, which slot is stronger, or
+what the live Numerai history shows, call `live_performance` as well.
+Ground every claim in those tool results. The July validation note is not
+live reputation.
 
 Reply in the user's language. Keep the untouched list in English tokens,
 exactly: `full-auto`, `mcp-submit`, `stake`.

@@ -9,7 +9,7 @@ Defaults used because the interview tool was unavailable:
 - Model: `grok-4.5` with `effort=high` and `fast=true`
 - Channels: playground and HTTP
 - MCP: none
-- Tools: `project_snapshot` (read), `record_direction` (write, confirm required)
+- Tools: `project_snapshot` (read), `live_performance` (read, public Numerai scores), `record_direction` (write, confirm required)
 
 ```bash
 cd numerai-supervisor

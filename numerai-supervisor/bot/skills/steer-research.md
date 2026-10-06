@@ -4,13 +4,21 @@ description: Use when choosing the next Numerai model comparison, research gap, 
 
 # Steer research
 
-1. Call `project_snapshot` with `{}` before recommending a change.
+1. Call `project_snapshot` with `{}` before recommending a code or
+   research change. If the question is about a score drop, a broken
+   round, or which live slot is stronger, also call `live_performance`
+   with `{}`.
 2. Treat `disabledModes` and `graphApprovalDisabled` as hard stops.
+   Rank live slots by `meanMmc`, `priorMeanMmc`, and `recentMeanMmc`
+   from `live_performance`, not by the old promotion-candidate paragraph.
+   A drop is `recentMean*` turning negative while `priorMean*` was positive.
 3. Recommend exactly one next experiment: a bake-off that runs one
    declared idea already represented in `modelSuite` or
    `optimizerEntrypoints` through walk-forward evaluation and the
-   existing promotion gate. Prefer wiring `optimizerEntrypoints` into
-   research when `optimizerImportedByDailyRunner` is false.
+   existing promotion gate. Aim it at the slot with the better live
+   MMC. Prefer wiring `optimizerEntrypoints` into research when
+   `optimizerImportedByDailyRunner` is false. Missing rounds are an
+   operations gap, separate from the model idea.
 4. Do not invent a new uploader, re-enable a disabled mode, or move
    stake. Shadow slots stay zero-stake.
 5. Reply with these sections, in the user's language:
