@@ -21,6 +21,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from app.core.daily_step import choose_daily_step  # noqa: E402
 from app.core.numerai_mcp_client import NumeraiMCPError  # noqa: E402
 from app.core.numerai_mcp_workflow import NumeraiMCPWorkflowRunner  # noqa: E402
 from app.core.numerai_ops import (  # noqa: E402
@@ -484,6 +485,23 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return PerformanceListener(
             Path(settings.CONTROL_PLANE_DIR),
         ).poll()
+    if mode == "daily-step":
+        scores_path = getattr(args, "scores_path", None)
+        if not scores_path:
+            return {
+                "ok": False,
+                "status": "DAILY_STEP_NEEDS_SCORES",
+                "summary": "Pass --scores-path with slot era_mean_mmc and recent_mean_mmc.",
+                "forbidden": [
+                    "full-auto",
+                    "mcp-submit",
+                    "numerapi-submit",
+                    "stake",
+                    "agent-submit",
+                ],
+            }
+        payload = json.loads(Path(scores_path).read_text())
+        return choose_daily_step(payload.get("slots", []))
     if mode == "research-evaluate":
         artifact_path = (
             getattr(args, "artifact_path", None)
@@ -595,6 +613,7 @@ def parse_args() -> argparse.Namespace:
             "system-health",
             "alert-dispatch",
             "score-listen",
+            "daily-step",
             "research-evaluate",
             "model-approve",
             "model-promote",
@@ -611,6 +630,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-model", help="Single Numerai model name for agent-prepare.")
     parser.add_argument("--artifact-path", help="Approved pickle artifact for agent-prepare.")
     parser.add_argument("--model-name", help="Model label for research artifacts.")
+    parser.add_argument(
+        "--scores-path",
+        help="JSON file of slot scores for the read-only daily-step mode.",
+    )
     parser.add_argument("--manifest-path", help="Frozen candidate manifest for promotion.")
     parser.add_argument("--assignments-path", help="JSON list of proposed portfolio assignments.")
     parser.add_argument(
