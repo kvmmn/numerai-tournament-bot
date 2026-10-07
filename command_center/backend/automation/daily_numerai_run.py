@@ -21,7 +21,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.core.daily_step import choose_daily_step  # noqa: E402
+from app.core.daily_step import choose_daily_step, experiment_preflight  # noqa: E402
 from app.core.numerai_mcp_client import NumeraiMCPError  # noqa: E402
 from app.core.numerai_mcp_workflow import NumeraiMCPWorkflowRunner  # noqa: E402
 from app.core.numerai_ops import (  # noqa: E402
@@ -501,7 +501,16 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
                 ],
             }
         payload = json.loads(Path(scores_path).read_text())
-        return choose_daily_step(payload.get("slots", []))
+        step = choose_daily_step(payload.get("slots", []))
+        step["research"] = experiment_preflight(
+            step.get("experiment"),
+            Path(settings.DATA_DIR).expanduser() / settings.DATA_VERSION,
+            credentials_present=bool(
+                settings.NUMERAI_PUBLIC_ID and settings.NUMERAI_SECRET_KEY
+            ),
+        )
+        step["trained"] = False
+        return step
     if mode == "research-evaluate":
         artifact_path = (
             getattr(args, "artifact_path", None)
