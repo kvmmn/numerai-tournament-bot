@@ -1,6 +1,9 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .numerai_auth import resolve_numerai_credentials
 
 
 NUMERAI_ROOT = Path(__file__).resolve().parents[4]
@@ -74,7 +77,9 @@ class Settings(BaseSettings):
 
     # Numerai MCP (remote) config
     NUMERAI_MCP_URL: str = "https://api-tournament.numer.ai/mcp/sse"
-    # Format expected by Numerai docs: "Token PUBLIC_KEY$PRIVATE_KEY"
+    # "Token PUBLIC_KEY$PRIVATE_KEY", or the bare PUBLIC_KEY$PRIVATE_KEY pair.
+    # The bare pair is prefixed on load. When the separate key fields are empty
+    # they are filled from this value, and the reverse when only those exist.
     NUMERAI_MCP_AUTH: str | None = None
     NUMERAI_MCP_USE_SSE: bool = True
 
@@ -90,6 +95,18 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def normalize_credentials(self) -> "Settings":
+        auth, public_id, secret_key = resolve_numerai_credentials(
+            self.NUMERAI_MCP_AUTH,
+            self.NUMERAI_PUBLIC_ID,
+            self.NUMERAI_SECRET_KEY,
+        )
+        self.NUMERAI_MCP_AUTH = auth
+        self.NUMERAI_PUBLIC_ID = public_id
+        self.NUMERAI_SECRET_KEY = secret_key
+        return self
 
 
 settings = Settings()
