@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from .config import settings
+from .numerai_auth import numerai_authorization
 
 MCP_IMPORT_ERROR: Optional[str] = None
 
@@ -93,7 +94,9 @@ class NumeraiMCPClient:
         use_sse: Optional[bool] = None,
     ):
         self.url = url or settings.NUMERAI_MCP_URL
-        self.auth_header = auth_header or settings.NUMERAI_MCP_AUTH
+        self.auth_header = numerai_authorization(
+            auth_header or settings.NUMERAI_MCP_AUTH
+        )
         self.use_sse = settings.NUMERAI_MCP_USE_SSE if use_sse is None else use_sse
 
     def _headers(self) -> Dict[str, str]:
