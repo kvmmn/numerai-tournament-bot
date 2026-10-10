@@ -5,6 +5,7 @@ The result is a plan. It does not train, submit, promote, or stake.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 FORBIDDEN = (
@@ -53,6 +54,32 @@ def choose_daily_step(slots: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "regime": regime,
         "forbidden": list(FORBIDDEN),
         "summary": summary,
+    }
+
+
+def experiment_preflight(
+    experiment: str | None,
+    data_dir: Path,
+    *,
+    credentials_present: bool,
+) -> dict[str, Any]:
+    """Say whether the named sweep can run. Never trains."""
+    required = ("train.parquet", "validation.parquet")
+    missing = [name for name in required if not (Path(data_dir) / name).is_file()]
+    if not credentials_present:
+        missing.append("numerai_credentials")
+    blocked = bool(missing) or not experiment
+    return {
+        "ok": not blocked,
+        "status": "RESEARCH_BLOCKED" if blocked else "RESEARCH_READY",
+        "experiment": experiment,
+        "trained": False,
+        "blocker": missing if experiment else ["experiment"],
+        "summary": (
+            "Named experiment was not trained. Missing " + ", ".join(missing) + "."
+            if missing
+            else "Training files are present. This preflight does not train."
+        ),
     }
 
 
