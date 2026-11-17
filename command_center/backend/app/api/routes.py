@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 
@@ -22,10 +22,12 @@ from ..core.numerai_mcp_client import (
     tool_info_to_dict,
 )
 from ..core.numerai_mcp_workflow import NumeraiMCPWorkflowRunner
+from ..core.metrics_ledger import read_metrics_history
 
 router = APIRouter()
 
 REPORTS_DIR = BACKEND_ROOT / "automation" / "reports"
+METRICS_DIR = Path(settings.CONTROL_PLANE_DIR) / "metrics"
 
 # --- Request/Response Models ---
 
@@ -51,6 +53,29 @@ class MCPRunRequest(BaseModel):
 class ConfigUpdate(BaseModel):
     key: str
     value: str
+
+
+# --- Canonical Metrics Routes ---
+
+
+@router.get("/metrics/latest")
+def get_latest_metrics(successful: bool = False):
+    """Return the most recent snapshot without contacting upstream systems."""
+    filename = "latest_successful.json" if successful else "latest.json"
+    path = METRICS_DIR / filename
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"Metrics snapshot not found: {filename}")
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=500, detail=f"Metrics snapshot is invalid: {exc}")
+    return payload
+
+
+@router.get("/metrics/history")
+def get_metrics_history(limit: int = Query(default=30, ge=1, le=400)):
+    """Return newest-first snapshot metadata from the bounded local index."""
+    return read_metrics_history(settings.CONTROL_PLANE_DIR, limit=limit)
 
 
 # --- MCP Routes ---

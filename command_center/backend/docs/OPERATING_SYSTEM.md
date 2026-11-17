@@ -51,6 +51,7 @@ flowchart LR
 | Every day, 18:00 / 18:15 | Native Score Listener / Codex watchdog | New outcomes or “nothing new” |
 | Every day, 18:05 / 18:15 | Native Stake Audit / shared Codex watchdog | Stake-policy reconciliation |
 | Every day, 19:00 / 19:15 | Native State Backup / Codex watchdog | Verified credential-free recovery archive |
+| Every day, 19:05 | Native Metrics Ledger | Provenance-rich project, dataset, runtime, research, and Numerai snapshot |
 | Every day, 19:10 / 19:15 | Native System Health / native alert | Loaded jobs plus fresh successful evidence |
 | Sunday, 16:00 / 16:15 | Native Research Review / Codex watchdog | Robustness and promotion report |
 | Human-approved portfolio passes automation policy | Submission Agent | One upload to one model |

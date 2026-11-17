@@ -54,6 +54,7 @@ cd "$HOME/Library/Application Support/Numerai/runtime/backend"
 python automation/daily_numerai_run.py --mode mcp-preflight
 python automation/daily_numerai_run.py --mode platform-status --strict
 python automation/daily_numerai_run.py --mode system-health --strict
+python automation/daily_numerai_run.py --mode metrics-snapshot --strict
 python automation/daily_numerai_run.py --mode portfolio-status --strict
 python automation/daily_numerai_run.py --mode stake-status --strict
 python -m unittest discover -s tests
@@ -61,7 +62,7 @@ python -m unittest discover -s tests
 
 ## Automation strategy
 1. Let macOS `launchd` run platform, deadline, portfolio, competition, outcome,
-   stake-audit, alerts, backup, health, and research jobs.
+   stake-audit, alerts, backup, metrics, health, and research jobs.
 2. Let Codex watchdogs inspect each native report 15–30 minutes later.
 3. Keep the active portfolio human-approved and checksum-bound.
 4. Let the explicitly enabled auto-submit path handle eligible portfolio slots;
@@ -95,6 +96,7 @@ GitHub; deploy tested source changes to the runtime before reloading jobs.
 - Native outcome listener / watchdog: every day at 18:00 / 18:15.
 - Native stake audit / shared watchdog: every day at 18:05 / 18:15.
 - Native verified state backup: every day at 19:00.
+- Native canonical metrics snapshot: every day at 19:05.
 - Native cross-job health supervisor: every day at 19:10.
 - Native research / watchdog: Sunday at 16:00 / 16:15.
 - Native deduplicated alerts: 11:05, 15:25, 18:12, and 19:15.
