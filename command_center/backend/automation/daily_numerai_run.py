@@ -67,6 +67,7 @@ from app.core.competition import CompetitionTracker  # noqa: E402
 from app.core.alerts import AlertDispatcher  # noqa: E402
 from app.core.platform_health import PlatformHealthMonitor  # noqa: E402
 from app.core.system_health import SystemHealthMonitor  # noqa: E402
+from app.core.metrics_ledger import MetricsLedger  # noqa: E402
 
 
 REPORTS_DIR = BACKEND_ROOT / "automation" / "reports"
@@ -476,6 +477,8 @@ def run_mode(mode: str, args: argparse.Namespace | None = None) -> Dict[str, Any
         return PlatformHealthMonitor().snapshot()
     if mode == "system-health":
         return SystemHealthMonitor().snapshot()
+    if mode == "metrics-snapshot":
+        return MetricsLedger().snapshot()
     if mode == "alert-dispatch":
         return AlertDispatcher(
             Path(settings.CONTROL_PLANE_DIR),
@@ -611,6 +614,7 @@ def parse_args() -> argparse.Namespace:
             "competition-status",
             "platform-status",
             "system-health",
+            "metrics-snapshot",
             "alert-dispatch",
             "score-listen",
             "daily-step",

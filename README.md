@@ -20,7 +20,7 @@ Numerai round opens
   → apply robustness and zero-stake automation policy
   → approve, upload, and verify each eligible submission
   → record an idempotent round/model ledger entry
-  → collect outcomes, health, alerts, and backups
+  → collect outcomes, canonical metrics, health, alerts, and backups
 ```
 
 Automatic submission is deliberately narrow. It is disabled by default,
@@ -70,6 +70,8 @@ The reviewed code is stored in Git. Mutable production state runs from:
 Start with the [operator runbook](command_center/backend/docs/RUNBOOK.md),
 [operating map](command_center/backend/docs/OPERATING_SYSTEM.md), and
 [runtime recovery guide](command_center/backend/docs/RUNTIME_RECOVERY.md).
+Project and tournament statistics are defined in the
+[canonical metrics ledger](command_center/backend/docs/METRICS_LEDGER.md).
 
 This project improves process quality and operational safety; it cannot
 guarantee tournament performance, rewards, or rank.

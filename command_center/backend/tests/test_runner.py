@@ -53,6 +53,15 @@ class GovernedRunnerTests(unittest.TestCase):
         self.assertEqual(result["status"], "SYSTEM_HEALTHY")
         snapshot.assert_called_once_with()
 
+    def test_metrics_snapshot_is_read_only_dispatch(self):
+        with patch(
+            "automation.daily_numerai_run.MetricsLedger.snapshot",
+            return_value={"ok": True, "status": "METRICS_SNAPSHOT_OK"},
+        ) as snapshot:
+            result = run_mode("metrics-snapshot")
+        self.assertEqual(result["status"], "METRICS_SNAPSHOT_OK")
+        snapshot.assert_called_once_with()
+
     def test_alert_dispatch_uses_durable_runtime_reports(self):
         with patch(
             "automation.daily_numerai_run.AlertDispatcher.dispatch",

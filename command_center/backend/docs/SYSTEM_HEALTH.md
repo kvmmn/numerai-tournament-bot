@@ -18,8 +18,8 @@ last native exit is zero or has not run since a safe reload
 ## Daily sequence
 
 ```text
-10:45–19:00  normal native jobs produce evidence
-19:10        system-health checks all nine worker jobs
+10:45–19:05  normal native jobs produce evidence
+19:10        system-health checks all ten worker jobs
 19:15        alert dispatcher reports any unhealthy worker
 ```
 
@@ -31,6 +31,7 @@ The supervisor checks:
 | Deadline guard | latest `portfolio-status` report | 30 hours |
 | Portfolio auto-submit | latest `portfolio-auto-submit` report | 30 hours |
 | Competition tracker | `state/competition/latest.json` | 30 hours |
+| Metrics ledger | `state/metrics/latest.json` | 30 hours |
 | Outcome listener | latest `score-listen` report | 30 hours |
 | Stake audit | latest `stake-status` report | 30 hours |
 | Alert dispatcher | alert ledger | 30 hours |

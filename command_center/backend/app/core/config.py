@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     MIN_TRAIN_ERAS: int = 100
     NEUTRALIZATION_PROPORTION: float = 0.75
     AUTO_APPROVE_SUBMISSION: bool = False
+    METRICS_START_ROUND: int = 1302
+    METRICS_PROJECT_START_UTC: str = "2026-07-02T00:00:00Z"
+    METRICS_RECENT_ROUNDS: int = 20
     # Explicit kill switch for the narrow, portfolio-bound scheduled submitter.
     # This is separate from the legacy AUTO_APPROVE_SUBMISSION setting: only
     # assignments from the approved active portfolio may use this path.

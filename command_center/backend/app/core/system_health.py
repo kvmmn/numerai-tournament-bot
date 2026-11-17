@@ -133,6 +133,13 @@ class SystemHealthMonitor:
                 30,
             ),
             EvidenceSpec(
+                "com.numerai.metrics",
+                "canonical metrics snapshot",
+                self.state_dir / "metrics",
+                "latest.json",
+                30,
+            ),
+            EvidenceSpec(
                 "com.numerai.outcomes",
                 "outcome listener",
                 self.reports_dir,

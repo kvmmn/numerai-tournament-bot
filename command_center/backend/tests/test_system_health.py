@@ -40,6 +40,10 @@ class SystemHealthMonitorTests(unittest.TestCase):
             {"ok": True, "status": "COMPETITION_ACTION_REQUIRED"},
         )
         self.write(
+            state / "metrics" / "latest.json",
+            {"ok": True, "status": "METRICS_SNAPSHOT_OK"},
+        )
+        self.write(
             state / "alerts" / "ledger.json",
             {"updated_at": NOW.isoformat(), "delivered": {}},
         )
@@ -79,8 +83,8 @@ class SystemHealthMonitorTests(unittest.TestCase):
             ).snapshot()
             self.assertTrue(result["ok"])
             self.assertEqual(result["status"], "SYSTEM_HEALTHY")
-            self.assertEqual(result["healthy_job_count"], 9)
-            self.assertEqual(result["expected_job_count"], 9)
+            self.assertEqual(result["healthy_job_count"], 10)
+            self.assertEqual(result["expected_job_count"], 10)
             self.assertTrue(Path(result["latest_path"]).exists())
 
     def test_stale_evidence_and_nonzero_exit_are_actionable(self):

@@ -8,10 +8,11 @@
 | Narrow automatic portfolio submission | Complete | Explicit switch, frozen checksums, zero-stake policy, idempotent verified upload |
 | Submission idempotency and verification | Complete | Ledger plus returned-ID lookup |
 | Distinct multi-slot portfolio control | Complete | Checksum-unique assignments and per-slot preparation |
-| Native scheduling | Complete | Ten `launchd` jobs, protected-folder-safe runtime, delayed Codex watchdogs |
+| Native scheduling | Complete | Eleven `launchd` job definitions, protected-folder-safe runtime, delayed Codex watchdogs |
 | Platform/API migration monitoring | Complete | Live 7/7 API, data-version, round, mapping, local schema, and stake-read contracts passed |
 | Manual/scheduled runtime parity | Complete | Live `DATA_DIR`-unset platform check passed 7/7 against the sibling runtime data directory |
-| Cross-job health supervision | Complete | Live `SYSTEM_HEALTHY`: 9/9 workers loaded with fresh successful evidence |
+| Cross-job health supervision | Complete | Ten worker definitions checked for loaded service plus fresh successful evidence |
+| Canonical metrics ledger | Complete | Provenance-rich snapshots, latest-successful fallback, bounded history, Markdown, and fast API reads |
 | Runtime deployment and rollback | Complete | Test, stage, checksum, backup, atomic replace, audit |
 | State backup and restore | Complete | Credential-free manifest, archive verification, guarded live restore |
 | Competition/season telemetry | Complete | Coverage, streak, qualification, reputation, bounded account rank |
